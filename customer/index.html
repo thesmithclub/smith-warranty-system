@@ -188,10 +188,12 @@
     #warrantyImgModal {
       display: none; position: fixed; inset: 0; z-index: 9999;
       background: rgba(0,0,0,0.88);
-      align-items: flex-start; justify-content: center;
-      overflow-y: auto; padding: 40px 20px;
+      overflow-y: auto;
     }
-    #warrantyImgModal.open { display: flex; }
+    #warrantyImgModal.open { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px 20px; min-height: 100%; box-sizing: border-box; }
+    #warrantyImgModalInner {
+      display: flex; flex-direction: column; align-items: center;
+    }
     #warrantyImgContainer {
       position: relative; width: 794px; height: 1123px;
       overflow: hidden; background: white; flex-shrink: 0;
@@ -289,7 +291,7 @@
     <div class="result-header">
       <div class="result-title" id="resultTitle"></div>
       <div class="download-btns">
-        <button class="btn btn-outline" onclick="showWarrantyImage()">🖼 이미지 보기</button>
+        <button class="btn btn-outline" onclick="showWarrantyImage()">🖼 보증서 보기</button>
         <button class="btn btn-primary" onclick="downloadImage()">⬇ 이미지 저장</button>
       </div>
     </div>
@@ -341,15 +343,17 @@
 
 <!-- 보증서 이미지 모달 -->
 <div id="warrantyImgModal" onclick="if(event.target===this)closeWarrantyImg()">
-  <div style="position:sticky; top:0; right:0; text-align:right; width:794px; margin-bottom:8px;">
-    <button onclick="closeWarrantyImg()" style="
-      background:white; border:none; border-radius:50%;
-      width:36px; height:36px; font-size:18px; cursor:pointer;
-      box-shadow:0 2px 10px rgba(0,0,0,0.4); color:#333;
-    ">✕</button>
-  </div>
-  <div id="warrantyImgContainer">
-    <img class="wi-bg" src="../warranty_letter.jpg" alt="보증서">
+  <div id="warrantyImgModalInner">
+    <div style="text-align:right; width:794px; margin-bottom:8px;">
+      <button onclick="closeWarrantyImg()" style="
+        background:white; border:none; border-radius:50%;
+        width:36px; height:36px; font-size:18px; cursor:pointer;
+        box-shadow:0 2px 10px rgba(0,0,0,0.4); color:#333;
+      ">✕</button>
+    </div>
+    <div id="warrantyImgContainer">
+      <img class="wi-bg" src="../warranty_letter.jpg" alt="보증서">
+    </div>
   </div>
 </div>
 
@@ -447,13 +451,13 @@ function renderWarrantyList(warranties) {
   // 개별 클릭을 위해 전역 저장
   window._warrantyList = warranties;
   document.getElementById('warrantyList').innerHTML = warranties.map(w => `
-    <div onclick="viewWarrantyImage('${w.id}')" style="background:white; border-radius:12px; padding:20px; margin-bottom:12px; box-shadow:0 2px 8px rgba(0,0,0,0.08); display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; cursor:pointer; transition:box-shadow 0.2s;" onmouseover="this.style.boxShadow='0 4px 16px rgba(45,106,79,0.18)'" onmouseout="this.style.boxShadow='0 2px 8px rgba(0,0,0,0.08)'">
+    <div style="background:white; border-radius:12px; padding:20px; margin-bottom:12px; box-shadow:0 2px 8px rgba(0,0,0,0.08); display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
       <div>
         <div style="font-weight:700; color:var(--smith-green-dark); margin-bottom:4px;">${w.customer_car} — ${w.car_number}</div>
         <div style="font-size:13px; color:#666;">${w.service_date} · ${w.shop_name} · <code>${w.warranty_number}</code></div>
         <div style="font-size:12px; color:#999; margin-top:2px;">${Number(w.service_price).toLocaleString()}원</div>
       </div>
-      <span style="font-size:12px; color:var(--smith-green-dark); font-weight:600;">🖼 보증서 보기 ›</span>
+      <button onclick="viewWarrantyImage('${w.id}')" style="background:var(--smith-green); color:white; border:none; border-radius:8px; padding:10px 18px; font-size:13px; font-weight:700; cursor:pointer; white-space:nowrap;">🖼 보증서 보기</button>
     </div>
   `).join('');
 }
@@ -589,6 +593,13 @@ function showWarrantyImage() {
     span.style.top  = pos.top + '%';
     span.style.left = pos.left + '%';
     if (pos.width) span.style.width = pos.width;
+    if (key === 'customer_address' && val.length > 21) {
+      span.style.whiteSpace = 'normal';
+      span.style.overflowWrap = 'break-word';
+      span.style.wordBreak = 'keep-all';
+      span.style.width = '32%';
+      span.style.lineHeight = '1.45';
+    }
     span.textContent = val;
     container.appendChild(span);
   });
