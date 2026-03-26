@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>제품 관리 - THE SMITH</title>
+  <link rel="stylesheet" href="../css/admin-theme.css">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    /* ── 레이아웃 ── */
+    .products-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 20px;
+    }
+
+    /* ── 제품 카드 ── */
+    .product-card {
+      background: var(--bg);
+      border-radius: 14px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      transition: box-shadow 0.2s;
+      border: 2px solid transparent;
+    }
+    .product-card:hover { box-shadow: var(--shadow-lg); }
+    .product-card.inactive { opacity: 0.5; }
+
+    .product-card-header {
+      background: var(--surface-2);
+      border-bottom: 1px solid var(--border);
+      border-left: 3px solid var(--primary);
+      color: var(--text-1);
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .product-card-header.inactive-header {
+      border-left-color: var(--text-3);
+    }
+
+    .product-name-input {
+      background: transparent;
+      border: none;
+      color: var(--primary);
+      font-size: 16px;
+      font-weight: 700;
+      flex: 1;
+      outline: none;
+      min-width: 0;
+    }
+    .product-name-input::placeholder { color: var(--text-3); }
+    .product-name-input:focus {
+      border-bottom: 2px solid var(--primary);
+    }
+
+    .card-header-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+
+    /* 토글 */
+    .toggle-switch {
+      position: relative; width: 38px; height: 20px;
+    }
+    .toggle-switch input { opacity: 0; width: 0; height: 0; }
+    .toggle-slider {
+      position: absolute; inset: 0;
+      background: var(--text-3);
+      border-radius: 20px; cursor: pointer; transition: 0.3s;
+    }
+    .toggle-slider::before {
+      content: ''; position: absolute;
+      width: 14px; height: 14px; left: 3px; top: 3px;
+      background: var(--text-2); border-radius: 50%; transition: 0.3s;
+    }
+    .toggle-switch input:checked + .toggle-slider { background: var(--primary); }
+    .toggle-switch input:checked + .toggle-slider::before {
+      transform: translateX(18px);
+      background: white;
+    }
+
+    /* 농도 영역 */
+    .spec-area { padding: 14px 16px; }
+
+    .spec-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--smith-text-muted);
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .spec-count {
+      background: var(--surface-2);
+      color: var(--primary);
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-size: 11px;
+    }
+
+    /* 농도 태그들 */
+    .spec-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      min-height: 36px;
+      margin-bottom: 10px;
+    }
+    .spec-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      color: var(--primary);
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: default;
+      transition: all 0.15s;
+    }
+    .spec-tag:hover { background: rgba(217,92,92,0.15); border-color: var(--red); color: var(--red); }
+    .spec-tag .remove-spec {
+      font-size: 14px;
+      line-height: 1;
+      cursor: pointer;
+      opacity: 0.5;
+    }
+    .spec-tag:hover .remove-spec { opacity: 1; }
+
+    .spec-empty {
+      font-size: 12px;
+      color: var(--text-3);
+      padding: 4px 0;
+    }
+
+    /* 농도 추가 인풋 */
+    .spec-add-row {
+      display: flex;
+      gap: 6px;
+    }
+    .spec-input {
+      flex: 1;
+      padding: 7px 10px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 13px;
+      background: var(--bg);
+      color: var(--text-1);
+      outline: none;
+      transition: border-color 0.2s;
+      box-shadow: var(--shadow-inset-sm);
+    }
+    .spec-input:focus { border-color: var(--primary); }
+    .spec-add-btn {
+      padding: 7px 14px;
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+      white-space: nowrap;
+    }
+    .spec-add-btn:hover { background: var(--primary-dk); }
+
+    /* 카드 하단 */
+    .product-card-footer {
+      padding: 10px 16px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: flex-end;
+    }
+
+    /* 제품 추가 버튼 카드 */
+    .add-product-card {
+      background: var(--surface-2);
+      border: 2px dashed var(--border);
+      border-radius: 14px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 32px 20px;
+      cursor: pointer;
+      transition: all 0.2s;
+      min-height: 160px;
+      gap: 10px;
+    }
+    .add-product-card:hover {
+      background: var(--primary-pale);
+      border-color: var(--primary);
+    }
+    .add-product-card .plus-icon {
+      font-size: 32px;
+      color: var(--primary);
+    }
+    .add-product-card p {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-2);
+      margin: 0;
+    }
+
+    /* 새 제품 추가 인라인 카드 */
+    .new-product-form {
+      background: var(--bg);
+      border: 2px solid var(--primary);
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+    .new-product-form-header {
+      background: var(--surface-2);
+      border-bottom: 1px solid var(--border);
+      border-left: 3px solid var(--primary);
+      padding: 12px 16px;
+      display: flex;
+      gap: 8px;
+    }
+    .new-product-name-input {
+      flex: 1;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--text-1);
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 600;
+      outline: none;
+      box-shadow: var(--shadow-inset-sm);
+    }
+    .new-product-name-input::placeholder { color: var(--text-3); }
+
+    /* 안내 배너 */
+    .info-banner {
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 11px 16px;
+      font-size: 13px;
+      color: var(--primary);
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+  </style>
+</head>
+<body>
+
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-mark">
+      <div class="logo-icon">✦</div>
+      <div>
+        <div class="logo-text">THE SMITH</div>
+        <div class="logo-sub">WARRANTY SYSTEM</div>
+      </div>
+    </div>
+  </div>
+  <nav class="sidebar-nav">
+    <a href="dashboard.html" class="nav-item"> 대시보드</a>
+    <a href="register.html" class="nav-item"> 보증서 등록</a>
+    <a href="warranties.html" class="nav-item"> 보증서 조회</a>
+    <a href="stats.html" class="nav-item"> 통계보기</a>
+    <a href="dealers.html" class="nav-item"> 대리점 관리</a>
+    <a href="products.html" class="nav-item active"> 제품 관리</a>
+    <a href="inventory.html" class="nav-item"> 재고 현황</a>
+    <a href="deduction-config.html" class="nav-item"> 1롤 차감설정</a>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="user-profile">
+      <div>
+        <div class="user-name" id="sidebarName">—</div>
+        <div class="user-role" id="sidebarRole">—</div>
+      </div>
+    </div>
+    <button class="logout-btn" onclick="handleLogout()">
+      로그아웃
+    </button>
+  </div>
+</aside>
+<div class="main-wrap">
+  <header class="main-header">
+    <div class="main-header-title">제품 및 농도 관리</div>
+    <div class="main-header-right">
+      <span id="totalInfo" style="font-size:13px; color:var(--smith-text-muted);"></span>
+    </div>
+  </header>
+  <div class="main-content" style="display:block; padding:28px 32px;">
+
+  <div class="info-banner">
+    💡 제품명을 클릭하면 바로 수정할 수 있어요. 농도 태그를 클릭하면 삭제됩니다.
+  </div>
+
+  <div class="products-grid" id="productsGrid"></div>
+
+  </div>
+</div>
+
+<!-- 삭제 확인 모달 -->
+<div class="modal-overlay" id="deleteModal">
+  <div class="modal-box" style="max-width:360px; text-align:center;">
+    <div style="font-size:40px; margin-bottom:12px;">🗑️</div>
+    <h3 class="modal-title" style="text-align:center; margin-bottom:8px;">제품 삭제</h3>
+    <p id="deleteMsg" style="color:var(--text-2); font-size:14px; margin-bottom:24px;"></p>
+    <div style="display:flex; gap:10px; justify-content:center;">
+      <button class="btn btn-outline" onclick="closeDeleteModal()">취소</button>
+      <button class="btn btn-danger" id="confirmDeleteBtn">삭제</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<script src="../js/demo-data.js"></script>
+<script src="../js/config.js"></script>
+<script>
+
+// ── 초기화 ──
+async function init() {
+  const session = await requireAuth('../index.html');
+  if (!session) return;
+  const profile = await getCurrentProfile();
+  if (profile?.role !== 'admin') {
+    alert('관리자만 접근할 수 있습니다.');
+    window.location.href = 'dashboard.html';
+    return;
+  }
+  document.getElementById('sidebarName').textContent   = profile.dealer_name;
+  document.getElementById('sidebarRole').textContent   = profile.role === 'admin' ? '관리자' : '대리점';
+  render();
+}
+
+// ── 전체 렌더링 ──
+function render() {
+  const products = getProducts();
+  const grid = document.getElementById('productsGrid');
+
+  // 통계
+  const activeCount = products.filter(p => p.active).length;
+  document.getElementById('totalInfo').textContent =
+    `전체 ${products.length}개 · 활성 ${activeCount}개`;
+
+  // 카드 렌더링
+  grid.innerHTML = products.map(p => renderProductCard(p)).join('') + `
+    <div class="add-product-card" onclick="showAddForm()" id="addCard">
+      <div class="plus-icon">＋</div>
+      <p>새 제품 추가</p>
+    </div>
+  `;
+}
+
+// ── 제품 카드 HTML ──
+function renderProductCard(p) {
+  const specTags = (p.specs || []).map(s => `
+    <span class="spec-tag" title="클릭하여 삭제" onclick="removeSpec('${p.id}', '${s}')">
+      ${s}% <span class="remove-spec">✕</span>
+    </span>
+  `).join('');
+
+  return `
+    <div class="product-card ${p.active ? '' : 'inactive'}" id="card-${p.id}">
+      <div class="product-card-header ${p.active ? '' : 'inactive-header'}">
+        <input
+          class="product-name-input"
+          value="${p.name}"
+          placeholder="제품명"
+          onblur="renameProduct('${p.id}', this.value)"
+          onkeydown="if(event.key==='Enter') this.blur()"
+          title="클릭하여 제품명 수정"
+        >
+        <div class="card-header-actions">
+          <label class="toggle-switch" title="${p.active ? '비활성화' : '활성화'}">
+            <input type="checkbox" ${p.active ? 'checked' : ''}
+              onchange="toggleProduct('${p.id}', this.checked)">
+            <span class="toggle-slider"></span>
+          </label>
+          <button
+            onclick="confirmDelete('${p.id}','${p.name}')"
+            style="background:rgba(255,255,255,0.2); border:none; color:white; width:26px; height:26px; border-radius:50%; cursor:pointer; font-size:14px; display:flex; align-items:center; justify-content:center;"
+            title="제품 삭제">✕</button>
+        </div>
+      </div>
+
+      <div class="spec-area">
+        <div class="spec-label">
+          농도 설정
+          <span class="spec-count">${(p.specs||[]).length}개</span>
+        </div>
+
+        <div class="spec-tags">
+          ${specTags || '<span class="spec-empty">아직 농도가 없습니다</span>'}
+        </div>
+
+        <div class="spec-add-row">
+          <input
+            type="number" min="1" max="100"
+            class="spec-input"
+            id="spec-input-${p.id}"
+            placeholder="농도 입력 (예: 15)"
+            onkeydown="if(event.key==='Enter') addSpec('${p.id}')"
+          >
+          <button class="spec-add-btn" onclick="addSpec('${p.id}')">+ 추가</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// ── 제품 이름 수정 ──
+function renameProduct(id, newName) {
+  const name = newName.trim();
+  if (!name) { render(); return; }
+  const products = getProducts();
+  const p = products.find(x => x.id === id);
+  if (!p) return;
+  if (p.name === name) return;
+  p.name = name;
+  saveProducts(products);
+  render();
+  showToast(`제품명이 "${name}"으로 수정되었습니다.`);
+}
+
+// ── 제품 활성/비활성 토글 ──
+function toggleProduct(id, active) {
+  const products = getProducts();
+  const p = products.find(x => x.id === id);
+  if (!p) return;
+  p.active = active;
+  saveProducts(products);
+  render();
+  showToast(active ? '제품이 활성화되었습니다.' : '제품이 비활성화되었습니다.');
+}
+
+// ── 농도 추가 ──
+function addSpec(productId) {
+  const input = document.getElementById(`spec-input-${productId}`);
+  const val = input.value.trim();
+
+  if (!val || isNaN(val) || Number(val) < 1 || Number(val) > 100) {
+    showToast('1~100 사이 숫자를 입력해 주세요.', 'error');
+    input.focus();
+    return;
+  }
+
+  const products = getProducts();
+  const p = products.find(x => x.id === productId);
+  if (!p) return;
+
+  if (!p.specs) p.specs = [];
+  if (p.specs.includes(val)) {
+    showToast('이미 추가된 농도입니다.', 'error');
+    input.value = '';
+    return;
+  }
+
+  p.specs.push(val);
+  // 숫자 오름차순 정렬
+  p.specs.sort((a, b) => Number(a) - Number(b));
+  saveProducts(products);
+  render();
+  // 포커스 유지
+  const newInput = document.getElementById(`spec-input-${productId}`);
+  if (newInput) newInput.focus();
+  showToast(`${val}% 농도가 추가되었습니다.`);
+}
+
+// ── 농도 삭제 ──
+function removeSpec(productId, specVal) {
+  const products = getProducts();
+  const p = products.find(x => x.id === productId);
+  if (!p) return;
+  p.specs = (p.specs || []).filter(s => s !== specVal);
+  saveProducts(products);
+  render();
+  showToast(`${specVal}% 농도가 삭제되었습니다.`);
+}
+
+// ── 새 제품 추가 폼 ──
+function showAddForm() {
+  const addCard = document.getElementById('addCard');
+  addCard.outerHTML = `
+    <div class="new-product-form" id="newProductForm">
+      <div class="new-product-form-header">
+        <input type="text" class="new-product-name-input" id="newProductNameInput"
+          placeholder="새 제품명 입력 (예: AURORA)"
+          onkeydown="if(event.key==='Enter') submitNewProduct(); if(event.key==='Escape') cancelAdd();"
+          autofocus>
+        <button onclick="submitNewProduct()" style="background:var(--surface-2); color:var(--primary); border:none; padding:8px 16px; border-radius:8px; font-weight:700; cursor:pointer;">추가</button>
+        <button onclick="cancelAdd()" style="background:rgba(255,255,255,0.2); color:white; border:none; padding:8px 12px; border-radius:8px; cursor:pointer;">✕</button>
+      </div>
+      <div style="padding:16px; font-size:13px; color:var(--text-2);">
+        제품명 입력 후 추가하세요. 농도는 생성 후 카드에서 추가할 수 있어요.
+      </div>
+    </div>
+  `;
+  setTimeout(() => document.getElementById('newProductNameInput')?.focus(), 50);
+}
+
+function submitNewProduct() {
+  const input = document.getElementById('newProductNameInput');
+  const name = input?.value.trim();
+  if (!name) { showToast('제품명을 입력해 주세요.', 'error'); return; }
+
+  const products = getProducts();
+  if (products.find(p => p.name === name)) {
+    showToast('이미 존재하는 제품명입니다.', 'error'); return;
+  }
+
+  products.push({ id: 'prod-' + Date.now(), name, specs: [], active: true });
+  saveProducts(products);
+  render();
+  showToast(`"${name}" 제품이 추가되었습니다.`);
+}
+
+function cancelAdd() { render(); }
+
+// ── 삭제 확인 모달 ──
+function confirmDelete(id, name) {
+  document.getElementById('deleteMsg').textContent =
+    `"${name}" 제품을 삭제하시겠습니까?\n등록된 농도도 함께 삭제됩니다.`;
+  document.getElementById('confirmDeleteBtn').onclick = () => {
+    const products = getProducts().filter(p => p.id !== id);
+    saveProducts(products);
+    render();
+    showToast(`"${name}" 제품이 삭제되었습니다.`);
+    closeDeleteModal();
+  };
+  document.getElementById('deleteModal').classList.add('active');
+}
+function closeDeleteModal() {
+  document.getElementById('deleteModal').classList.remove('active');
+}
+
+// ── 토스트 ──
+function showToast(msg, type = 'success') {
+  const container = document.getElementById('toastContainer');
+  const toast = document.createElement('div');
+  toast.className = `toast ${type}`;
+  toast.textContent = msg;
+  container.appendChild(toast);
+  setTimeout(() => toast.remove(), 3000);
+}
+
+// ── 로그아웃 ──
+async function handleLogout() {
+  await supabaseClient.auth.signOut();
+  window.location.href = '../index.html';
+}
+
+init();
+</script>
+</body>
+</html>

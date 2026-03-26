@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>보증서 조회 - THE SMITH</title>
+  <link rel="stylesheet" href="../css/styles.css">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    /* ── 고객 페이지 전용 ── */
+    body { background: linear-gradient(160deg, #f0f7f3 0%, #e8f4ec 100%); min-height: 100vh; }
+
+    .customer-header {
+      background: var(--smith-green-dark);
+      padding: 20px 24px;
+      text-align: center;
+      color: white;
+    }
+    .customer-header .logo {
+      font-size: 22px;
+      font-weight: 900;
+      letter-spacing: 3px;
+      margin-bottom: 4px;
+    }
+    .customer-header .sub { font-size: 13px; opacity: 0.75; }
+
+    .search-container {
+      max-width: 520px;
+      margin: 40px auto 0;
+      padding: 0 20px;
+    }
+
+    .search-card {
+      background: white;
+      border-radius: 16px;
+      padding: 36px 32px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+    }
+
+    .search-card h2 {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--smith-green-dark);
+      margin-bottom: 8px;
+    }
+    .search-card p {
+      font-size: 13px;
+      color: var(--smith-text-muted);
+      margin-bottom: 24px;
+      line-height: 1.6;
+    }
+
+    .search-methods {
+      display: flex;
+      gap: 0;
+      border: 1px solid var(--smith-border);
+      border-radius: 8px;
+      overflow: hidden;
+      margin-bottom: 20px;
+    }
+    .search-method-btn {
+      flex: 1;
+      padding: 10px;
+      border: none;
+      background: #f8f9fa;
+      color: var(--smith-text-muted);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .search-method-btn.active {
+      background: var(--smith-green);
+      color: white;
+    }
+
+    .search-input-group {
+      display: flex;
+      gap: 10px;
+    }
+    .search-input-group .form-control { flex: 1; }
+
+    .search-hint {
+      font-size: 12px;
+      color: var(--smith-text-muted);
+      margin-top: 10px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    /* ── 결과 영역 ── */
+    .result-container {
+      max-width: 860px;
+      margin: 32px auto 40px;
+      padding: 0 20px;
+    }
+
+    .result-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .result-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--smith-green-dark);
+    }
+
+    .download-btns { display: flex; gap: 8px; }
+
+    /* ── 보증서 뷰어 ── */
+    .warranty-viewer {
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+      overflow: hidden;
+    }
+
+    .viewer-scale-wrapper {
+      background: #f0f0f0;
+      padding: 20px;
+      overflow: hidden;
+    }
+    .viewer-scale-inner { transform-origin: top left; }
+
+    /* ── 보증서 템플릿 (조회용 - 이미지 오버레이) ── */
+    #warrantyDisplay {
+      position: relative;
+      width: 794px;
+      height: 1123px;
+      overflow: hidden;
+      background: white;
+      font-family: 'Noto Sans KR', sans-serif;
+    }
+    #warrantyDisplay .wd-bg {
+      position: absolute; inset: 0;
+      width: 100%; height: 100%; display: block;
+    }
+    #warrantyDisplay .wf {
+      position: absolute;
+      font-size: 13px; font-weight: 700; color: #1a1a1a;
+      white-space: nowrap; line-height: 1;
+    }
+    #warrantyDisplay .wf-sm  { font-size: 11px; }
+    #warrantyDisplay .wf-center { text-align: center; }
+    #warrantyDisplay .wf-right  { transform: translateX(-100%); text-align: right; }
+    .wt-logo-area { text-align: center; margin-bottom: 32px; }
+    .wt-logo-text { font-size: 26px; font-weight: 900; letter-spacing: 3px; color: #1b4332; }
+    .wt-logo-sub { font-size: 11px; color: #888; letter-spacing: 1px; margin-top: 4px; }
+    .wt-logo-icon { font-size: 32px; margin-bottom: 8px; }
+    .wt-divider { border: none; border-top: 2px solid #1b4332; margin: 16px 0; }
+    .wt-title { text-align: center; font-size: 20px; font-weight: 700; letter-spacing: 6px; margin: 20px 0 24px; color: #1b1b1b; }
+    .wt-section-header { background: #2d6a4f; color: white; padding: 8px 14px; font-weight: 700; font-size: 13px; display: flex; align-items: center; gap: 8px; }
+    .wt-section-header span { font-size: 11px; font-weight: 400; opacity: 0.85; }
+    .wt-info-table { width: 100%; border-collapse: collapse; }
+    .wt-info-table td { padding: 8px 12px; border-bottom: 1px solid #e8e8e8; font-size: 13px; }
+    .wt-info-table .label { color: #555; width: 80px; white-space: nowrap; }
+    .wt-info-table .value { font-weight: 600; color: #1b1b1b; }
+    .wt-consent { font-size: 11px; color: #555; padding: 8px 12px; border-top: 1px solid #eee; display: flex; align-items: center; gap: 6px; }
+    .wt-service-row { display: flex; align-items: center; padding: 8px 12px; border-bottom: 1px solid #e8e8e8; gap: 24px; }
+    .wt-service-row .label { color: #555; width: 64px; flex-shrink: 0; }
+    .wt-service-row .value { font-weight: 600; }
+    .wt-service-row .price { margin-left: auto; font-weight: 700; color: #1b4332; }
+    .wt-position-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .wt-position-table th { background: #f0f7f3; color: #2d6a4f; padding: 7px 8px; text-align: center; font-weight: 700; border: 1px solid #d4e6db; }
+    .wt-position-table td { padding: 6px 8px; text-align: center; border: 1px solid #e0ece5; color: #333; }
+    .wt-position-table .row-label { text-align: left; font-weight: 600; color: #2d6a4f; background: #f8fbf9; }
+    .wt-terms { font-size: 10.5px; color: #444; line-height: 1.7; padding: 14px 12px; border: 1px solid #e0e0e0; border-radius: 4px; background: #fafafa; }
+    .wt-terms .terms-title { font-weight: 700; font-size: 12px; color: #1b4332; margin-bottom: 8px; }
+    .wt-terms ol { padding-left: 16px; }
+    .wt-terms li { margin-bottom: 3px; }
+    .wt-installer-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .wt-installer-table td { padding: 8px 12px; border-bottom: 1px solid #e8e8e8; }
+    .wt-installer-table .label { color: #555; width: 80px; }
+    .wt-installer-table .value { font-weight: 600; }
+    .wt-footer { text-align: center; margin-top: 24px; padding-top: 20px; border-top: 2px solid #1b4332; }
+    .wt-footer .ceo-line { font-size: 16px; font-weight: 700; color: #1b1b1b; letter-spacing: 1px; }
+    .wt-footer .stamp-area { display: inline-flex; align-items: center; gap: 12px; margin-top: 8px; }
+    .wt-footer .stamp { width: 56px; height: 56px; border: 2px solid #c0392b; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #c0392b; font-size: 8px; font-weight: 700; text-align: center; line-height: 1.3; }
+    .wt-note { font-size: 11px; color: #888; text-align: center; margin-top: 16px; }
+
+    /* ── 보증서 이미지 모달 ── */
+    #warrantyImgModal {
+      display: none; position: fixed; inset: 0; z-index: 9999;
+      background: rgba(0,0,0,0.88);
+      align-items: flex-start; justify-content: center;
+      overflow-y: auto; padding: 40px 20px;
+    }
+    #warrantyImgModal.open { display: flex; }
+    #warrantyImgContainer {
+      position: relative; width: 794px; height: 1123px;
+      overflow: hidden; background: white; flex-shrink: 0;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.5);
+    }
+    #warrantyImgContainer img.wi-bg {
+      position: absolute; inset: 0; width: 100%; height: 100%; display: block;
+    }
+    .wi-field {
+      position: absolute; font-size: 13px; font-weight: 700;
+      color: #1a1a1a; white-space: nowrap; line-height: 1;
+    }
+    .wi-sm { font-size: 11px; }
+    .wi-center { text-align: center; }
+    .wi-right { transform: translateX(-100%); text-align: right; }
+
+    /* ── 안내 상태 ── */
+    .state-box {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--smith-text-muted);
+    }
+    .state-box .icon { font-size: 48px; margin-bottom: 16px; }
+    .state-box h3 { font-size: 18px; font-weight: 700; margin-bottom: 8px; color: var(--smith-green-dark); }
+    .state-box p { font-size: 14px; }
+
+    .not-found-box {
+      background: #fff5f5;
+      border: 1px solid #fecaca;
+      border-radius: 12px;
+      padding: 32px;
+      text-align: center;
+    }
+
+    /* ── 모바일 ── */
+    @media(max-width: 600px) {
+      .search-card { padding: 24px 20px; }
+      .download-btns { width: 100%; }
+      .download-btns .btn { flex: 1; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- 헤더 -->
+<div class="customer-header">
+  <div class="logo">
+    <img src="https://smith.speedgabia.com/logo_data/the_smith_logo.png" alt="THE SMITH" style="height:44px; object-fit:contain; filter:brightness(0) invert(1);">
+  </div>
+  <div class="sub">PREMIUM FILM SOLUTION — 보증서 조회</div>
+</div>
+
+<!-- 검색 영역 -->
+<div class="search-container">
+  <div class="search-card">
+    <h2>보증서 조회</h2>
+    <p>보증번호 또는 휴대전화번호로 보증서를 조회하실 수 있습니다.<br>
+       보증서에 등록된 정보로만 조회 가능합니다.</p>
+
+    <div class="search-methods">
+      <button class="search-method-btn active" onclick="switchMethod('number')" id="btn_number">보증번호로 조회</button>
+      <button class="search-method-btn" onclick="switchMethod('phone')" id="btn_phone">휴대전화로 조회</button>
+    </div>
+
+    <!-- 보증번호 검색 -->
+    <div id="searchByNumber">
+      <div class="search-input-group">
+        <input type="text" id="inputWarrantyNumber" class="form-control"
+          placeholder="예: 26-SC-0325-3140"
+          onkeydown="if(event.key==='Enter') search()">
+        <button class="btn btn-primary" onclick="search()">조회</button>
+      </div>
+      <div class="search-hint">💡 보증번호는 카카오톡 메시지 또는 보증서에서 확인하세요</div>
+    </div>
+
+    <!-- 휴대전화 검색 -->
+    <div id="searchByPhone" style="display:none;">
+      <div class="form-group">
+        <input type="tel" id="inputPhone" class="form-control"
+          placeholder="010-0000-0000"
+          onkeydown="if(event.key==='Enter') searchByPhone()">
+      </div>
+      <button class="btn btn-primary btn-full" onclick="searchByPhone()">조회</button>
+      <div class="search-hint">💡 등록된 휴대전화번호로 모든 보증서를 조회합니다</div>
+    </div>
+
+  </div>
+</div>
+
+<!-- 결과 영역 -->
+<div class="result-container" id="resultContainer" style="display:none;">
+
+  <!-- 단일 결과 (보증번호 조회) -->
+  <div id="singleResult" style="display:none;">
+    <div class="result-header">
+      <div class="result-title" id="resultTitle"></div>
+      <div class="download-btns">
+        <button class="btn btn-primary" onclick="downloadImage()">⬇ 이미지 저장</button>
+      </div>
+    </div>
+
+    <div class="warranty-viewer">
+      <div class="viewer-scale-wrapper" id="viewerScaleWrapper">
+        <div class="viewer-scale-inner" id="viewerScaleInner">
+          <div id="warrantyDisplay">
+            <!-- 보증서 내용은 JS로 채워짐 -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 복수 결과 (전화번호 조회) -->
+  <div id="multiResult" style="display:none;">
+    <div class="result-title" style="margin-bottom:16px;" id="multiResultTitle"></div>
+    <div id="warrantyList"></div>
+  </div>
+
+  <!-- 검색 중 -->
+  <div id="loadingState" style="display:none;" class="state-box">
+    <div class="icon">🔍</div>
+    <h3>조회 중...</h3>
+  </div>
+
+  <!-- 결과 없음 -->
+  <div id="notFoundState" style="display:none;">
+    <div class="not-found-box">
+      <div style="font-size:40px; margin-bottom:12px;">🔍</div>
+      <h3 style="font-size:17px; font-weight:700; color:#991b1b; margin-bottom:8px;">보증서를 찾을 수 없습니다</h3>
+      <p style="font-size:13px; color:#666;">입력하신 정보와 일치하는 보증서가 없습니다.<br>보증번호 또는 연락처를 다시 확인해 주세요.</p>
+    </div>
+  </div>
+
+</div>
+
+<!-- 초기 안내 -->
+<div id="initialState" class="state-box" style="padding-top:40px;">
+  <div class="icon">📋</div>
+  <h3>보증서를 조회해 주세요</h3>
+  <p>위 검색창에 보증번호 또는 휴대전화번호를 입력하세요.</p>
+</div>
+
+<div style="text-align:center; padding: 24px; font-size:12px; color:#aaa;">
+  ⓒ THE SMITH (스미스클럽) · 보증서 관련 문의: 대리점 또는 본사 문의
+</div>
+
+<!-- 보증서 이미지 모달 -->
+<div id="warrantyImgModal" onclick="if(event.target===this)closeWarrantyImg()">
+  <div style="position:sticky; top:0; right:0; text-align:right; width:794px; margin-bottom:8px;">
+    <button onclick="closeWarrantyImg()" style="
+      background:white; border:none; border-radius:50%;
+      width:36px; height:36px; font-size:18px; cursor:pointer;
+      box-shadow:0 2px 10px rgba(0,0,0,0.4); color:#333;
+    ">✕</button>
+  </div>
+  <div id="warrantyImgContainer">
+    <img class="wi-bg" src="../warranty_letter.jpg" alt="보증서">
+  </div>
+</div>
+
+<script src="../js/demo-data.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<script src="../js/config.js"></script>
+<script>
+let currentWarranty = null;
+let searchMode = 'number';
+
+// URL 파라미터로 바로 조회
+window.addEventListener('DOMContentLoaded', () => {
+  const params = new URLSearchParams(window.location.search);
+  const wn = params.get('wn');
+  if (wn) {
+    document.getElementById('inputWarrantyNumber').value = wn;
+    search();
+  }
+});
+
+// 검색 방식 전환
+function switchMethod(method) {
+  searchMode = method;
+  document.getElementById('searchByNumber').style.display = method === 'number' ? 'block' : 'none';
+  document.getElementById('searchByPhone').style.display  = method === 'phone'  ? 'block' : 'none';
+  document.getElementById('btn_number').classList.toggle('active', method === 'number');
+  document.getElementById('btn_phone').classList.toggle('active',  method === 'phone');
+}
+
+// 보증번호로 조회
+async function search() {
+  const wn = document.getElementById('inputWarrantyNumber').value.trim();
+  if (!wn) { alert('보증번호를 입력해 주세요.'); return; }
+
+  showState('loading');
+
+  const { data, error } = await supabaseClient
+    .from('warranties')
+    .select('*')
+    .eq('warranty_number', wn)
+    .single();
+
+  if (error || !data) { showState('notFound'); return; }
+
+  currentWarranty = data;
+  showState('single');
+  renderWarrantyDisplay(data);
+  document.getElementById('resultTitle').textContent =
+    `${data.customer_name}님의 보증서 — ${data.warranty_number}`;
+  setTimeout(initViewerScale, 100);
+}
+
+// 전화번호로 조회
+async function searchByPhone() {
+  const phone = document.getElementById('inputPhone').value.trim();
+  if (!phone) { alert('휴대전화번호를 입력해 주세요.'); return; }
+
+  showState('loading');
+
+  const { data, error } = await supabaseClient
+    .from('warranties')
+    .select('*')
+    .eq('customer_phone', phone)
+    .order('service_date', { ascending: false });
+
+  if (error || !data || data.length === 0) { showState('notFound'); return; }
+
+  if (data.length === 1) {
+    currentWarranty = data[0];
+    showState('single');
+    renderWarrantyDisplay(data[0]);
+    document.getElementById('resultTitle').textContent =
+      `${data[0].customer_name}님의 보증서 — ${data[0].warranty_number}`;
+    setTimeout(initViewerScale, 100);
+  } else {
+    showState('multi');
+    renderWarrantyList(data);
+    document.getElementById('multiResultTitle').textContent =
+      `${data[0].customer_name}님의 보증서 ${data.length}건`;
+  }
+}
+
+// 상태 표시
+function showState(state) {
+  document.getElementById('initialState').style.display = 'none';
+  document.getElementById('resultContainer').style.display = 'block';
+  document.getElementById('singleResult').style.display  = state === 'single'  ? 'block' : 'none';
+  document.getElementById('multiResult').style.display   = state === 'multi'   ? 'block' : 'none';
+  document.getElementById('loadingState').style.display  = state === 'loading' ? 'block' : 'none';
+  document.getElementById('notFoundState').style.display = state === 'notFound'? 'block' : 'none';
+}
+
+// 복수 목록 렌더링
+function renderWarrantyList(warranties) {
+  document.getElementById('warrantyList').innerHTML = warranties.map(w => `
+    <div style="background:white; border-radius:12px; padding:20px; margin-bottom:12px; box-shadow:0 2px 8px rgba(0,0,0,0.08); display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
+      <div>
+        <div style="font-weight:700; color:var(--smith-green-dark); margin-bottom:4px;">${w.customer_car} — ${w.car_number}</div>
+        <div style="font-size:13px; color:#666;">${w.service_date} · ${w.shop_name} · <code>${w.warranty_number}</code></div>
+        <div style="font-size:12px; color:#999; margin-top:2px;">${Number(w.service_price).toLocaleString()}원</div>
+      </div>
+      <button class="btn btn-primary btn-sm" onclick="selectWarranty('${w.id}', ${JSON.stringify(warranties).replace(/'/g,"\\'")} )">
+        보증서 보기
+      </button>
+    </div>
+  `).join('');
+  // 개별 클릭을 위해 전역 저장
+  window._warrantyList = warranties;
+}
+
+function selectWarranty(id) {
+  const w = window._warrantyList.find(x => x.id === id);
+  if (!w) return;
+  currentWarranty = w;
+  showState('single');
+  renderWarrantyDisplay(w);
+  document.getElementById('resultTitle').textContent =
+    `${w.customer_name}님의 보증서 — ${w.warranty_number}`;
+  setTimeout(initViewerScale, 100);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// 보증서 이미지 오버레이 렌더링
+function renderWarrantyDisplay(w) {
+  const container = document.getElementById('warrantyDisplay');
+
+  // 이미지 + 오버레이 스팬 구성
+  const fields = [
+    { cls:'wf',                    id:'wd_customer_name',     top:23.1, left:18.0,  val: w.customer_name },
+    { cls:'wf',                    id:'wd_customer_phone',    top:23.1, left:59.5,  val: maskPhone(w.customer_phone) },
+    { cls:'wf',                    id:'wd_customer_car',      top:26.7, left:18.0,  val: w.customer_car },
+    { cls:'wf',                    id:'wd_customer_address',  top:26.8, left:59.5,  val: w.customer_address || '' },
+    { cls:'wf',                    id:'wd_car_number',        top:30.4, left:18.0,  val: w.car_number },
+    { cls:'wf',                    id:'wd_car_vin',           top:30.5, left:59.5,  val: w.car_vin || '' },
+    { cls:'wf',                    id:'wd_service_date',      top:39.4, left:18.0,  val: w.service_date },
+    { cls:'wf',                    id:'wd_warranty_number',   top:39.4, left:59.5,  val: w.warranty_number },
+    { cls:'wf wf-right',           id:'wd_service_price',     top:39.4, left:90.9,  val: w.service_price ? '₩ ' + Number(w.service_price).toLocaleString() : '' },
+    { cls:'wf wf-sm wf-center', id:'wd_front_product',    top:46.6, left:19.1, width:'11.5%', val: w.front_product||'' },
+    { cls:'wf wf-sm wf-center', id:'wd_side1_product',    top:46.6, left:29.4, width:'11.5%', val: w.side1_product||'' },
+    { cls:'wf wf-sm wf-center', id:'wd_side2_product',    top:46.6, left:39.5, width:'11.5%', val: w.side2_product||'' },
+    { cls:'wf wf-sm wf-center', id:'wd_side3_product',    top:46.6, left:49.9, width:'11.5%', val: w.side3_product||'' },
+    { cls:'wf wf-sm wf-center', id:'wd_rear_product',     top:46.6, left:59.9, width:'11.5%', val: w.rear_product||'' },
+    { cls:'wf wf-sm wf-center', id:'wd_glass_roof_product',top:46.6,left:70.3, width:'11.5%', val: w.glass_roof_product||'' },
+    { cls:'wf wf-sm wf-center', id:'wd_panorama_product', top:46.6, left:80.3, width:'11.5%', val: w.panorama_product||'' },
+    { cls:'wf wf-sm wf-center', id:'wd_front_spec',       top:50.0, left:19.1, width:'11.5%', val: w.front_spec||'' },
+    { cls:'wf wf-sm wf-center', id:'wd_side1_spec',       top:50.0, left:29.4, width:'11.5%', val: w.side1_spec||'' },
+    { cls:'wf wf-sm wf-center', id:'wd_side2_spec',       top:50.0, left:39.5, width:'11.5%', val: w.side2_spec||'' },
+    { cls:'wf wf-sm wf-center', id:'wd_side3_spec',       top:50.0, left:49.9, width:'11.5%', val: w.side3_spec||'' },
+    { cls:'wf wf-sm wf-center', id:'wd_rear_spec',        top:50.0, left:59.9, width:'11.5%', val: w.rear_spec||'' },
+    { cls:'wf wf-sm wf-center', id:'wd_glass_roof_spec',  top:50.0, left:70.3, width:'11.5%', val: w.glass_roof_spec||'' },
+    { cls:'wf wf-sm wf-center', id:'wd_panorama_spec',    top:50.0, left:80.3, width:'11.5%', val: w.panorama_spec||'' },
+    { cls:'wf', id:'wd_shop_name',      top:76.5, left:18.0,  val: w.shop_name||'' },
+    { cls:'wf', id:'wd_shop_address',   top:78.7, left:52.1,  val: w.shop_address||'' },
+    { cls:'wf', id:'wd_shop_phone',     top:80.1, left:18.0,  val: w.shop_phone||'' },
+    { cls:'wf', id:'wd_installer_name', top:83.8, left:18.0,  val: w.installer_name||'' },
+  ];
+
+  const spansHtml = fields.map(f =>
+    `<span class="${f.cls}" style="top:${f.top}%;left:${f.left}%;${f.width?'width:'+f.width+';':''}">${f.val}</span>`
+  ).join('');
+
+  container.innerHTML = `
+    <img class="wd-bg" src="../warranty_letter.jpg" alt="보증서" crossorigin="anonymous">
+    ${spansHtml}
+  `;
+}
+
+// ── 보증서 이미지 팝업 ──
+const WI_POS = {
+  customer_name:    { top:23.1, left:18.0 },
+  customer_phone:   { top:23.1, left:59.5 },
+  customer_car:     { top:26.7, left:18.0 },
+  customer_address: { top:26.8, left:59.5 },
+  car_number:       { top:30.4, left:18.0 },
+  car_vin:          { top:30.5, left:59.5 },
+  service_date:     { top:39.4, left:18.0 },
+  warranty_number:  { top:39.4, left:59.5 },
+  service_price:    { top:39.4, left:90.9, cls:'wi-right' },
+  front_product:    { top:46.6, left:19.1, cls:'wi-sm wi-center', width:'11.5%' },
+  side1_product:    { top:46.6, left:29.4, cls:'wi-sm wi-center', width:'11.5%' },
+  side2_product:    { top:46.6, left:39.5, cls:'wi-sm wi-center', width:'11.5%' },
+  side3_product:    { top:46.6, left:49.9, cls:'wi-sm wi-center', width:'11.5%' },
+  rear_product:     { top:46.6, left:59.9, cls:'wi-sm wi-center', width:'11.5%' },
+  glass_roof_product:{ top:46.6, left:70.3, cls:'wi-sm wi-center', width:'11.5%' },
+  panorama_product: { top:46.6, left:80.3, cls:'wi-sm wi-center', width:'11.5%' },
+  front_spec:       { top:50.0, left:19.1, cls:'wi-sm wi-center', width:'11.5%' },
+  side1_spec:       { top:50.0, left:29.4, cls:'wi-sm wi-center', width:'11.5%' },
+  side2_spec:       { top:50.0, left:39.5, cls:'wi-sm wi-center', width:'11.5%' },
+  side3_spec:       { top:50.0, left:49.9, cls:'wi-sm wi-center', width:'11.5%' },
+  rear_spec:        { top:50.0, left:59.9, cls:'wi-sm wi-center', width:'11.5%' },
+  glass_roof_spec:  { top:50.0, left:70.3, cls:'wi-sm wi-center', width:'11.5%' },
+  panorama_spec:    { top:50.0, left:80.3, cls:'wi-sm wi-center', width:'11.5%' },
+  shop_name:        { top:76.5, left:18.0 },
+  shop_address:     { top:78.7, left:52.1 },
+  shop_phone:       { top:80.1, left:18.0 },
+  installer_name:   { top:83.8, left:18.0 },
+};
+
+function showWarrantyImage() {
+  const w = currentWarranty;
+  if (!w) return;
+  const container = document.getElementById('warrantyImgContainer');
+  container.querySelectorAll('.wi-field').forEach(s => s.remove());
+
+  const data = {
+    customer_name: w.customer_name,
+    customer_phone: maskPhone(w.customer_phone),
+    customer_car: w.customer_car,
+    customer_address: w.customer_address || '',
+    car_number: w.car_number,
+    car_vin: w.car_vin || '',
+    service_date: w.service_date,
+    warranty_number: w.warranty_number,
+    service_price: w.service_price ? '₩ ' + Number(w.service_price).toLocaleString() : '',
+    front_product: w.front_product || '', side1_product: w.side1_product || '',
+    side2_product: w.side2_product || '', side3_product: w.side3_product || '',
+    rear_product: w.rear_product || '', glass_roof_product: w.glass_roof_product || '',
+    panorama_product: w.panorama_product || '',
+    front_spec: w.front_spec || '', side1_spec: w.side1_spec || '',
+    side2_spec: w.side2_spec || '', side3_spec: w.side3_spec || '',
+    rear_spec: w.rear_spec || '', glass_roof_spec: w.glass_roof_spec || '',
+    panorama_spec: w.panorama_spec || '',
+    shop_name: w.shop_name || '', shop_address: w.shop_address || '',
+    shop_phone: w.shop_phone || '', installer_name: w.installer_name || '',
+  };
+
+  Object.entries(data).forEach(([key, val]) => {
+    const pos = WI_POS[key];
+    if (!pos) return;
+    const span = document.createElement('span');
+    span.className = 'wi-field' + (pos.cls ? ' ' + pos.cls : '');
+    span.style.top  = pos.top + '%';
+    span.style.left = pos.left + '%';
+    if (pos.width) span.style.width = pos.width;
+    span.textContent = val;
+    container.appendChild(span);
+  });
+
+  document.getElementById('warrantyImgModal').classList.add('open');
+}
+
+function closeWarrantyImg() {
+  document.getElementById('warrantyImgModal').classList.remove('open');
+}
+
+// 뷰어 스케일
+function initViewerScale() {
+  const wrapper = document.getElementById('viewerScaleWrapper');
+  const inner   = document.getElementById('viewerScaleInner');
+  const display = document.getElementById('warrantyDisplay');
+  if (!wrapper || !display) return;
+  const scale = (wrapper.offsetWidth - 40) / display.offsetWidth;
+  inner.style.transform = `scale(${scale})`;
+  inner.style.width = `${display.offsetWidth}px`;
+  wrapper.style.height = `${Math.ceil(display.offsetHeight * scale + 40)}px`;
+}
+window.addEventListener('resize', initViewerScale);
+
+// 이미지 다운로드
+async function downloadImage() {
+  if (!currentWarranty) return;
+  const btn = event.target;
+  btn.disabled = true;
+  btn.textContent = '생성 중...';
+
+  // 저장된 이미지 URL이 있으면 바로 다운로드
+  if (currentWarranty.warranty_image_url) {
+    const link = document.createElement('a');
+    link.href = currentWarranty.warranty_image_url;
+    link.download = `보증서_${currentWarranty.warranty_number}.png`;
+    link.target = '_blank';
+    link.click();
+    btn.disabled = false;
+    btn.textContent = '⬇ 다운로드';
+    return;
+  }
+
+  // 없으면 html2canvas로 직접 캡처
+  const display = document.getElementById('warrantyDisplay');
+  const inner   = document.getElementById('viewerScaleInner');
+  const prevTransform = inner.style.transform;
+  inner.style.transform = 'scale(1)';
+
+  const canvas = await html2canvas(display, {
+    scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false
+  });
+
+  inner.style.transform = prevTransform;
+  initViewerScale();
+
+  const link = document.createElement('a');
+  link.download = `보증서_${currentWarranty.warranty_number}.png`;
+  link.href = canvas.toDataURL('image/png');
+  link.click();
+
+  btn.disabled = false;
+  btn.textContent = '⬇ 다운로드';
+}
+</script>
+</body>
+</html>

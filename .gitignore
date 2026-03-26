@@ -1,0 +1,19 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# 환경변수 (Supabase, Solapi 실제 키는 절대 커밋 금지)
+.env
+.env.local
+.env.production
+
+# 임시 파일
+*.tmp
+*.log
+
+# 에디터
+.vscode/
+.idea/
+
+# 위치값 캡쳐 이미지 (불필요한 대용량 파일)
+위치값\ 세팅\ 캡쳐본/

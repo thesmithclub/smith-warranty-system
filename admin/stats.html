@@ -1,0 +1,863 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>통계보기 - THE SMITH</title>
+  <link rel="stylesheet" href="../css/admin-theme.css">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    .stats-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    @media (max-width: 900px) { .stats-grid { grid-template-columns: 1fr; } }
+
+    .stat-section {
+      background: var(--bg);
+      border-radius: 16px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    .stat-section-title {
+      background: var(--surface-2);
+      padding: 14px 20px;
+      font-size: 14px; font-weight: 700;
+      color: var(--smith-green-dark);
+      border-bottom: 1px solid var(--border);
+    }
+    .stat-section-body { padding: 20px; }
+
+    /* 필터 바 */
+    .filter-bar {
+      display: flex; gap: 10px; flex-wrap: wrap; align-items: center;
+      background: var(--surface-2); border-radius: 14px; padding: 16px 20px;
+      margin-bottom: 20px;
+    }
+    .filter-bar .form-control { font-size: 13px; padding: 8px 12px; }
+    .filter-bar select { min-width: 110px; }
+    .filter-label { font-size: 12px; font-weight: 600; color: var(--text-2); white-space: nowrap; }
+
+    /* 대리점 검색 자동완성 */
+    .dealer-search-wrap { position: relative; min-width: 180px; }
+    .dealer-search-wrap input { width: 100%; box-sizing: border-box; }
+    .dealer-dropdown {
+      display: none; position: absolute; top: 100%; left: 0; right: 0; z-index: 200;
+      background: var(--bg); border: 1px solid var(--border); border-radius: 10px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.2); max-height: 240px; overflow-y: auto;
+      margin-top: 4px;
+    }
+    .dealer-dropdown.open { display: block; }
+    .dealer-option {
+      padding: 9px 14px; font-size: 13px; cursor: pointer; color: var(--text-1);
+    }
+    .dealer-option:hover, .dealer-option.active { background: var(--surface-2); }
+    .dealer-option.all { color: var(--text-2); font-style: italic; }
+
+    /* 순위 테이블 */
+    .rank-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .rank-table th {
+      background: var(--surface-2); padding: 8px 12px; text-align: left;
+      font-size: 11px; font-weight: 600; color: var(--text-2);
+      border-bottom: 1px solid var(--border);
+    }
+    .rank-table td { padding: 10px 12px; border-bottom: 1px solid var(--border); }
+    .rank-table tr:last-child td { border-bottom: none; }
+    .rank-badge {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 24px; height: 24px; border-radius: 50%;
+      font-size: 11px; font-weight: 700;
+    }
+    .rank-1 { background: #FFD700; color: #7a5500; }
+    .rank-2 { background: #C0C0C0; color: #444; }
+    .rank-3 { background: #CD7F32; color: #fff; }
+    .rank-n { background: var(--surface-2); color: var(--text-2); }
+
+    .rank-bar-wrap { background: var(--surface-2); border-radius: 4px; height: 6px; margin-top: 4px; }
+    .rank-bar-fill { height: 6px; border-radius: 4px; background: var(--smith-green); transition: width 0.4s; }
+    .rank-hidden { display: none; }
+    .rank-toggle-btn {
+      width: 100%; padding: 10px; border: none; background: var(--surface-2);
+      color: var(--text-2); font-size: 12px; cursor: pointer; text-align: center;
+      border-top: 1px solid var(--border); transition: background 0.15s;
+    }
+    .rank-toggle-btn:hover { background: var(--border); color: var(--text-1); }
+
+    .chart-wrap { position: relative; height: 260px; }
+
+    /* 시공 위치별 현황 */
+    .pos-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .pos-table th {
+      background: var(--surface-2); padding: 8px 14px;
+      text-align: left; font-size: 11px; font-weight: 600;
+      color: var(--text-3); border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+    .pos-table td { padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+    .pos-table tr:last-child td { border-bottom: none; }
+    .pos-table tr:hover td { background: var(--surface-2); }
+
+    .pos-name { font-weight: 700; color: var(--text-1); font-size: 13px; }
+    .pos-count { font-weight: 700; color: var(--primary); font-size: 14px; white-space: nowrap; }
+    .pos-pct { font-size: 11px; color: var(--text-3); margin-left: 4px; }
+    .pos-products { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 2px; }
+    .pos-prod-chip {
+      display: inline-flex; align-items: center; gap: 3px;
+      background: var(--surface-2); border-radius: 20px;
+      padding: 2px 8px; font-size: 11px; color: var(--text-2);
+    }
+    .pos-prod-chip .chip-name { font-weight: 600; color: var(--text-1); }
+    .pos-prod-chip .chip-cnt  { color: var(--primary); font-weight: 700; }
+
+    /* 기간 라벨 */
+    .period-label {
+      font-size: 11px; color: var(--text-3); margin-top: 2px;
+    }
+
+    /* 대리점 정보 카드 */
+    .dealer-info-section { margin-top: 16px; }
+    .dealer-info-title {
+      font-size: 12px; font-weight: 700; color: var(--text-2);
+      margin-bottom: 8px; text-transform: uppercase; letter-spacing: .5px;
+    }
+    .inv-chip-wrap { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+    .inv-chip {
+      display: inline-flex; align-items: center; gap: 4px;
+      background: var(--surface-2); border-radius: 20px;
+      padding: 4px 10px; font-size: 11px; color: var(--text-1);
+    }
+    .inv-chip .ic-name { font-weight: 600; }
+    .inv-chip .ic-qty { color: var(--primary); font-weight: 700; }
+    .inv-chip.zero .ic-qty { color: #e74c3c; }
+  </style>
+</head>
+<body>
+
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-mark">
+      <div class="logo-icon">✦</div>
+      <div>
+        <div class="logo-text">THE SMITH</div>
+        <div class="logo-sub">WARRANTY SYSTEM</div>
+      </div>
+    </div>
+  </div>
+  <nav class="sidebar-nav">
+    <a href="dashboard.html" class="nav-item"> 대시보드</a>
+    <a href="register.html" class="nav-item"> 보증서 등록</a>
+    <a href="warranties.html" class="nav-item"> 보증서 조회</a>
+    <a href="stats.html" class="nav-item active"> 통계보기</a>
+    <a href="dealers.html" class="nav-item"> 대리점 관리</a>
+    <a href="products.html" class="nav-item"> 제품 관리</a>
+    <a href="inventory.html" class="nav-item"> 재고 현황</a>
+    <a href="deduction-config.html" class="nav-item"> 1롤 차감설정</a>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="user-profile">
+      <div>
+        <div class="user-name" id="sidebarName">—</div>
+        <div class="user-role" id="sidebarRole">—</div>
+      </div>
+    </div>
+    <button class="logout-btn" onclick="handleLogout()">로그아웃</button>
+  </div>
+</aside>
+
+<div class="main-wrap">
+  <header class="main-header">
+    <div class="main-header-title">통계보기</div>
+  </header>
+
+  <div class="main-content" style="display:block; padding:28px 32px;">
+
+    <!-- 대리점 수 요약 카드 -->
+    <div style="display:flex; gap:16px; margin-bottom:20px;" id="dealerCountCards">
+      <div class="stat-section" style="flex:1;">
+        <div class="stat-section-body" style="padding:16px 20px; display:flex; align-items:center; gap:14px;">
+          <div style="font-size:28px; line-height:1;">🏬</div>
+          <div>
+            <div style="font-size:11px; font-weight:600; color:var(--text-2); margin-bottom:4px;">누적 대리점 수</div>
+            <div style="font-size:26px; font-weight:800; color:var(--text-1);" id="statTotalDealers">—</div>
+          </div>
+        </div>
+      </div>
+      <div class="stat-section" style="flex:1;">
+        <div class="stat-section-body" style="padding:16px 20px; display:flex; align-items:center; gap:14px;">
+          <div style="font-size:28px; line-height:1; filter:drop-shadow(0 0 4px #39ff7a);">●</div>
+          <div>
+            <div style="font-size:11px; font-weight:600; color:var(--text-2); margin-bottom:4px;">활성 대리점 수</div>
+            <div style="font-size:26px; font-weight:800; color:#39ff7a; text-shadow:0 0 8px #39ff7a88;" id="statActiveDealers">—</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 대리점 순위 (필터 위) -->
+    <div class="stat-section" style="margin-bottom:20px;">
+      <div class="stat-section-title">대리점 발급건수 순위</div>
+      <div class="stat-section-body" style="padding:0;">
+        <table class="rank-table">
+          <thead id="rankThead" style="display:none;">
+            <tr><th>순위</th><th>대리점</th><th>발급건수</th></tr>
+          </thead>
+          <tbody id="rankTbody"></tbody>
+        </table>
+        <button class="rank-toggle-btn" id="rankToggleBtn" onclick="toggleRankRows()">
+          ▼ 더보기 (6~10위)
+        </button>
+      </div>
+    </div>
+
+    <!-- 필터 바 -->
+    <div class="filter-bar">
+      <span class="filter-label">기간</span>
+      <select id="fYear" class="form-control" onchange="renderAll()"></select>
+      <select id="fMonth" class="form-control" onchange="renderAll()">
+        <option value="">전체 월</option>
+        <option value="01">1월</option><option value="02">2월</option>
+        <option value="03">3월</option><option value="04">4월</option>
+        <option value="05">5월</option><option value="06">6월</option>
+        <option value="07">7월</option><option value="08">8월</option>
+        <option value="09">9월</option><option value="10">10월</option>
+        <option value="11">11월</option><option value="12">12월</option>
+      </select>
+      <select id="fDay" class="form-control" onchange="renderAll()">
+        <option value="">전체 일</option>
+      </select>
+      <div class="dealer-search-wrap">
+        <input type="text" id="fDealerInput" class="form-control"
+          placeholder="대리점 검색..."
+          oninput="onDealerInput()" onfocus="openDealerDropdown()" autocomplete="off">
+        <div id="dealerDropdown" class="dealer-dropdown"></div>
+      </div>
+    </div>
+
+    <div class="stats-grid">
+      <!-- 월별 발급건수 그래프 -->
+      <div class="stat-section" style="grid-column: 1 / -1;">
+        <div class="stat-section-title">월별 보증서 발급건수</div>
+        <div class="stat-section-body">
+          <div class="chart-wrap">
+            <canvas id="monthlyChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- 시공 위치별 현황 -->
+      <div class="stat-section" style="grid-column: 1 / -1;">
+        <div class="stat-section-title">위치별 시공횟수</div>
+        <div class="stat-section-body" style="padding:0;">
+          <table class="pos-table">
+            <thead>
+              <tr>
+                <th>시공 위치</th>
+                <th>시공횟수</th>
+                <th>비율</th>
+                <th>사용 제품 (건수)</th>
+              </tr>
+            </thead>
+            <tbody id="posTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 아이템별 사용현황 -->
+      <div class="stat-section" style="grid-column: 1 / -1;" id="itemStatsSection">
+        <div class="stat-section-title">아이템별 사용현황</div>
+        <div class="stat-section-body">
+          <div style="display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap;" id="itemChartTabs"></div>
+          <div class="chart-wrap" style="height:300px;">
+            <canvas id="itemChart"></canvas>
+          </div>
+          <div id="itemChartLegend" style="display:flex; flex-wrap:wrap; gap:8px; margin-top:12px;"></div>
+        </div>
+      </div>
+
+      <!-- 정보 확인하기 -->
+      <div class="stat-section" style="grid-column: 1 / -1;">
+        <div class="stat-section-title">정보 확인하기</div>
+        <div class="stat-section-body" id="summaryBody"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<script src="../js/demo-data.js"></script>
+<script src="../js/config.js"></script>
+<script>
+
+let allWarranties = [];
+let dealerMap    = {};
+let allDealers   = [];
+let selectedDealerId = '';
+let monthlyChart = null;
+let itemChart    = null;
+let selectedItem = null; // 선택된 아이템 (null = 전체)
+
+async function init() {
+  const session = await requireAuth('../index.html');
+  if (!session) return;
+  const profile = await getCurrentProfile();
+  if (!profile) return;
+  if (profile.role !== 'admin') {
+    window.location.href = 'dashboard.html';
+    return;
+  }
+  document.getElementById('sidebarName').textContent = profile.dealer_name;
+  document.getElementById('sidebarRole').textContent = '관리자';
+
+  allWarranties = getWarranties();
+
+  allDealers = getUsers().filter(u => u.role === 'dealer')
+    .sort((a, b) => (a.dealer_name||'').localeCompare(b.dealer_name||''));
+  allDealers.forEach(d => { dealerMap[d.id] = d.dealer_name; });
+
+  // 대리점 수 카드
+  const activeCnt = allDealers.filter(d => d.active !== false).length;
+  document.getElementById('statTotalDealers').textContent = allDealers.length;
+  document.getElementById('statActiveDealers').textContent = activeCnt;
+
+  document.addEventListener('click', e => {
+    if (!e.target.closest('.dealer-search-wrap')) closeDealerDropdown();
+  });
+
+  // 연도 드롭다운
+  const years = [...new Set(allWarranties.map(w => w.service_date.slice(0,4)))].sort().reverse();
+  const curYear = new Date().getFullYear().toString();
+  if (!years.includes(curYear)) years.unshift(curYear);
+  const yearSel = document.getElementById('fYear');
+  years.forEach(y => {
+    const opt = document.createElement('option');
+    opt.value = y; opt.textContent = y + '년';
+    if (y === curYear) opt.selected = true;
+    yearSel.appendChild(opt);
+  });
+
+  // 일 드롭다운
+  const daySel = document.getElementById('fDay');
+  for (let d = 1; d <= 31; d++) {
+    const opt = document.createElement('option');
+    opt.value = String(d).padStart(2, '0');
+    opt.textContent = d + '일';
+    daySel.appendChild(opt);
+  }
+
+  renderAll();
+}
+
+// ── 대리점 검색 자동완성 ──
+function onDealerInput() {
+  const q = document.getElementById('fDealerInput').value.trim().toLowerCase();
+  if (selectedDealerId && dealerMap[selectedDealerId] !== document.getElementById('fDealerInput').value) {
+    selectedDealerId = '';
+    renderAll();
+  }
+  renderDealerDropdown(q);
+  openDealerDropdown();
+}
+
+function renderDealerDropdown(q) {
+  const filtered = q
+    ? allDealers.filter(d => d.dealer_name.toLowerCase().includes(q))
+    : allDealers;
+  const dd = document.getElementById('dealerDropdown');
+  dd.innerHTML =
+    `<div class="dealer-option all" onclick="selectDealer('','')">모든 대리점</div>` +
+    filtered.map(d =>
+      `<div class="dealer-option${selectedDealerId===d.id?' active':''}"
+        onclick="selectDealer('${d.id}','${d.dealer_name.replace(/'/g,"\\'")}')">
+        ${d.dealer_name}
+      </div>`
+    ).join('');
+}
+
+function openDealerDropdown() {
+  renderDealerDropdown(document.getElementById('fDealerInput').value.trim().toLowerCase());
+  document.getElementById('dealerDropdown').classList.add('open');
+}
+
+function closeDealerDropdown() {
+  document.getElementById('dealerDropdown').classList.remove('open');
+}
+
+function selectDealer(id, name) {
+  selectedDealerId = id;
+  document.getElementById('fDealerInput').value = name;
+  closeDealerDropdown();
+  renderAll();
+}
+
+function getFiltered() {
+  const year    = document.getElementById('fYear').value;
+  const month   = document.getElementById('fMonth').value;
+  const day     = document.getElementById('fDay').value;
+  const dealerId= selectedDealerId;
+
+  return allWarranties.filter(w => {
+    const [y, m, d] = w.service_date.split('-');
+    if (year     && y !== year)    return false;
+    if (month    && m !== month)   return false;
+    if (day      && d !== day)     return false;
+    if (dealerId && w.dealer_id !== dealerId) return false;
+    return true;
+  });
+}
+
+function renderAll() {
+  const filtered = getFiltered();
+  renderChart(filtered);
+  renderRanking(filtered);
+  renderPositions(filtered);
+  renderItemStats(filtered);
+  renderSummary(filtered);
+}
+
+// ── 시공 위치별 현황 ──
+const POSITION_DEFS = [
+  { key: 'front',      label: '전면' },
+  { key: 'side1',      label: '측면 1' },
+  { key: 'side2',      label: '측면 2' },
+  { key: 'side3',      label: '측면 3' },
+  { key: 'rear',       label: '후면' },
+  { key: 'glass_roof', label: '글래스루프' },
+  { key: 'panorama',   label: '파노라마' },
+];
+
+function renderPositions(filtered) {
+  const total = filtered.length;
+  const tbody = document.getElementById('posTableBody');
+
+  if (total === 0) {
+    tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:var(--text-3);padding:24px;">데이터 없음</td></tr>`;
+    return;
+  }
+
+  // 위치별 집계
+  const stats = POSITION_DEFS.map(pos => {
+    const pKey = pos.key + '_product';
+    const sKey = pos.key + '_spec';
+    const applied = filtered.filter(w => w[pKey] && w[pKey].trim() !== '');
+    // 제품별 카운트
+    const prodCount = {};
+    applied.forEach(w => {
+      const name = w[pKey] + (w[sKey] ? ' ' + w[sKey] + '%' : '');
+      prodCount[name] = (prodCount[name] || 0) + 1;
+    });
+    const topProds = Object.entries(prodCount)
+      .sort((a, b) => b[1] - a[1]);
+    return { ...pos, count: applied.length, topProds };
+  });
+
+  const maxCount = Math.max(...stats.map(s => s.count), 1);
+
+  tbody.innerHTML = stats.map(s => {
+    const pct = total > 0 ? Math.round(s.count / total * 100) : 0;
+    const barPct = Math.round(s.count / maxCount * 100);
+    const prodChips = s.topProds.length
+      ? s.topProds.map(([name, cnt]) =>
+          `<span class="pos-prod-chip"><span class="chip-name">${name}</span><span class="chip-cnt">${cnt}건</span></span>`
+        ).join('')
+      : `<span style="font-size:11px;color:var(--text-3);">-</span>`;
+
+    return `
+      <tr>
+        <td><div class="pos-name">${s.label}</div></td>
+        <td>
+          <span class="pos-count">${s.count.toLocaleString()}</span>
+          <span class="pos-pct">회</span>
+        </td>
+        <td style="font-size:12px;color:var(--text-2);">
+          ${pct}%
+        </td>
+        <td>
+          <div class="pos-products">${prodChips}</div>
+        </td>
+      </tr>`;
+  }).join('');
+}
+
+// ── 아이템별 사용현황 ──
+const POS_LABELS = {
+  front: '전면', side1: '측면1', side2: '측면2', side3: '측면3',
+  rear: '후면', glass_roof: '글래스루프', panorama: '파노라마'
+};
+const POS_KEYS = ['front','side1','side2','side3','rear','glass_roof','panorama'];
+const ITEM_COLORS = [
+  '#2d6a4f','#52b788','#e07b39','#6a5acd','#e74c3c','#3498db','#f39c12','#9b59b6'
+];
+
+function renderItemStats(filtered) {
+  const section = document.getElementById('itemStatsSection');
+  if (!section) return;
+
+  if (filtered.length === 0) {
+    section.style.display = 'none';
+    return;
+  }
+  section.style.display = '';
+
+  // 사용된 제품 목록 추출
+  const productSet = new Set();
+  filtered.forEach(w => {
+    POS_KEYS.forEach(k => {
+      const p = (w[k + '_product'] || '').trim();
+      if (p) productSet.add(p);
+    });
+  });
+  const products = [...productSet].sort();
+
+  if (products.length === 0) {
+    section.style.display = 'none';
+    return;
+  }
+
+  // 선택된 아이템이 사라졌으면 초기화
+  if (selectedItem && !products.includes(selectedItem)) selectedItem = null;
+
+  // 탭 버튼 렌더링
+  const tabsEl = document.getElementById('itemChartTabs');
+  tabsEl.innerHTML = [null, ...products].map((p, i) => {
+    const label = p === null ? '전체 비교' : p;
+    const active = selectedItem === p;
+    const color  = p === null ? 'var(--primary)' : ITEM_COLORS[(i - 1) % ITEM_COLORS.length];
+    return `<button onclick="selectItem(${p === null ? 'null' : `'${p}'`})"
+      style="padding:6px 14px; border-radius:20px; font-size:12px; font-weight:600; cursor:pointer;
+        border: 1.5px solid ${color};
+        background: ${active ? color : 'transparent'};
+        color: ${active ? '#fff' : color};
+        transition: all .15s;">
+      ${label}
+    </button>`;
+  }).join('');
+
+  drawItemChart(filtered, products);
+}
+
+function selectItem(item) {
+  selectedItem = item === 'null' ? null : item;
+  const filtered = getFiltered();
+  renderItemStats(filtered);
+}
+
+function drawItemChart(filtered, products) {
+  if (itemChart) { itemChart.destroy(); itemChart = null; }
+
+  const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const gridColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
+  const textColor = isDark ? '#aaa' : '#888';
+
+  const posLabels = POS_KEYS.map(k => POS_LABELS[k]);
+
+  let datasets;
+
+  if (selectedItem === null) {
+    // 전체 비교: 제품별로 각 위치의 시공횟수 → 그룹형 막대
+    datasets = products.map((prod, idx) => {
+      const data = POS_KEYS.map(k => {
+        return filtered.filter(w => (w[k + '_product'] || '').trim() === prod).length;
+      });
+      const color = ITEM_COLORS[idx % ITEM_COLORS.length];
+      return {
+        label: prod,
+        data,
+        backgroundColor: color + 'cc',
+        borderColor: color,
+        borderWidth: 1.5,
+        borderRadius: 5,
+      };
+    });
+  } else {
+    // 단일 제품: 농도별로 각 위치 분해 → 스택 막대
+    const specSet = new Set();
+    filtered.forEach(w => {
+      POS_KEYS.forEach(k => {
+        if ((w[k + '_product'] || '').trim() === selectedItem) {
+          specSet.add((w[k + '_spec'] || '?').trim());
+        }
+      });
+    });
+    const specs = [...specSet].sort((a, b) => Number(a) - Number(b));
+
+    datasets = specs.map((spec, idx) => {
+      const data = POS_KEYS.map(k =>
+        filtered.filter(w =>
+          (w[k + '_product'] || '').trim() === selectedItem &&
+          (w[k + '_spec'] || '').trim() === spec
+        ).length
+      );
+      const color = ITEM_COLORS[idx % ITEM_COLORS.length];
+      return {
+        label: spec + '%',
+        data,
+        backgroundColor: color + 'cc',
+        borderColor: color,
+        borderWidth: 1.5,
+        borderRadius: 5,
+        stack: 'stack',
+      };
+    });
+  }
+
+  itemChart = new Chart(document.getElementById('itemChart'), {
+    type: 'bar',
+    data: { labels: posLabels, datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: 'top',
+          labels: { color: textColor, font: { size: 11 }, padding: 12, boxWidth: 12 }
+        },
+        tooltip: {
+          callbacks: {
+            label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y}회`
+          }
+        }
+      },
+      scales: {
+        x: {
+          grid: { color: gridColor },
+          ticks: { color: textColor, font: { size: 11 } }
+        },
+        y: {
+          grid: { color: gridColor },
+          ticks: { color: textColor, font: { size: 11 }, stepSize: 1, precision: 0 },
+          beginAtZero: true,
+          stacked: selectedItem !== null,
+        }
+      }
+    }
+  });
+}
+
+function renderChart(filtered) {
+  const year  = document.getElementById('fYear').value;
+  const month = document.getElementById('fMonth').value;
+
+  // 월별 집계 (선택된 연도 기준, 12개월)
+  const counts = {};
+  const labels = [];
+
+  if (month) {
+    // 월 선택 시 → 일별 표시 (1~31)
+    for (let d = 1; d <= 31; d++) {
+      const key = String(d).padStart(2, '0');
+      counts[key] = 0;
+      labels.push(d + '일');
+    }
+    filtered.forEach(w => {
+      const d = w.service_date.split('-')[2];
+      if (counts[d] !== undefined) counts[d]++;
+    });
+  } else {
+    // 월 미선택 → 월별 표시 (1~12)
+    for (let m = 1; m <= 12; m++) {
+      const key = String(m).padStart(2, '0');
+      counts[key] = 0;
+      labels.push(m + '월');
+    }
+    filtered.forEach(w => {
+      const m = w.service_date.split('-')[1];
+      if (counts[m] !== undefined) counts[m]++;
+    });
+  }
+
+  const data = Object.values(counts);
+
+  if (monthlyChart) monthlyChart.destroy();
+
+  const isDark = document.documentElement.classList.contains('dark') ||
+    window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const gridColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
+  const textColor = isDark ? '#aaa' : '#888';
+
+  monthlyChart = new Chart(document.getElementById('monthlyChart'), {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        label: '발급건수',
+        data,
+        borderColor: '#2d6a4f',
+        backgroundColor: 'rgba(45,106,79,0.12)',
+        borderWidth: 2.5,
+        pointBackgroundColor: '#2d6a4f',
+        pointRadius: 4,
+        pointHoverRadius: 6,
+        fill: true,
+        tension: 0.35,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => ` ${ctx.parsed.y}건`
+          }
+        }
+      },
+      scales: {
+        x: {
+          grid: { color: gridColor },
+          ticks: { color: textColor, font: { size: 11 } }
+        },
+        y: {
+          grid: { color: gridColor },
+          ticks: { color: textColor, font: { size: 11 }, stepSize: 1, precision: 0 },
+          beginAtZero: true,
+        }
+      }
+    }
+  });
+}
+
+let rankExpanded = false;
+
+function renderRanking(filtered) {
+  rankExpanded = false;
+  const counts = {};
+  filtered.forEach(w => {
+    counts[w.dealer_id] = (counts[w.dealer_id] || 0) + 1;
+  });
+  const maxCount = Math.max(...Object.values(counts), 1);
+
+  const sorted = Object.entries(counts)
+    .map(([id, cnt]) => ({ id, name: dealerMap[id] || id, cnt }))
+    .sort((a, b) => b.cnt - a.cnt)
+    .slice(0, 10);
+
+  const tbody = document.getElementById('rankTbody');
+  const toggleBtn = document.getElementById('rankToggleBtn');
+
+  if (sorted.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="3" style="text-align:center; color:var(--text-3); padding:24px;">데이터 없음</td></tr>`;
+    toggleBtn.style.display = 'none';
+    return;
+  }
+
+  // 기본값: 전체 접힌 상태
+  tbody.innerHTML = sorted.map((d, i) => {
+    const rank = i + 1;
+    const badgeClass = rank === 1 ? 'rank-1' : rank === 2 ? 'rank-2' : rank === 3 ? 'rank-3' : 'rank-n';
+    const pct = Math.round(d.cnt / maxCount * 100);
+    return `
+      <tr class="rank-hidden" data-rank="${rank}">
+        <td><span class="rank-badge ${badgeClass}">${rank}</span></td>
+        <td>
+          <div style="font-weight:600;">${d.name}</div>
+          <div class="rank-bar-wrap"><div class="rank-bar-fill" style="width:${pct}%;"></div></div>
+        </td>
+        <td style="font-weight:700; color:var(--primary);">${d.cnt}<span style="font-weight:400; font-size:11px; color:var(--text-2);">건</span></td>
+      </tr>
+    `;
+  }).join('');
+
+  toggleBtn.style.display = 'block';
+  toggleBtn.textContent = '▼ TOP 10 보기';
+}
+
+function toggleRankRows() {
+  rankExpanded = !rankExpanded;
+  document.querySelectorAll('#rankTbody tr[data-rank]').forEach(tr => {
+    tr.classList.toggle('rank-hidden', !rankExpanded);
+  });
+  document.getElementById('rankThead').style.display = rankExpanded ? '' : 'none';
+  const btn = document.getElementById('rankToggleBtn');
+  btn.textContent = rankExpanded ? '▲ 접기' : '▼ TOP 10 보기';
+}
+
+function getPeriodLabel() {
+  const year  = document.getElementById('fYear').value;
+  const month = document.getElementById('fMonth').value;
+  const day   = document.getElementById('fDay').value;
+  let parts = [];
+  if (year)  parts.push(year + '년');
+  if (month) parts.push(parseInt(month) + '월');
+  if (day)   parts.push(parseInt(day) + '일');
+  return parts.length ? parts.join(' ') : '전체 기간';
+}
+
+function renderSummary(filtered) {
+  const total  = filtered.length;
+  const sent   = filtered.filter(w => w.kakao_sent).length;
+  const period = getPeriodLabel();
+
+  // 대리점 정보 섹션
+  let dealerSection = '';
+  if (selectedDealerId) {
+    const dealer = allDealers.find(d => d.id === selectedDealerId);
+    if (dealer) {
+      const inv = getInventory().filter(i => i.dealer_id === selectedDealerId);
+      // 제품별 그룹핑
+      const grouped = {};
+      inv.forEach(i => {
+        if (!grouped[i.product_name]) grouped[i.product_name] = [];
+        grouped[i.product_name].push(i);
+      });
+      const chips = inv.length === 0
+        ? `<div style="color:var(--text-3); font-size:12px;">등록된 재고 없음</div>`
+        : Object.entries(grouped).map(([name, items]) =>
+            items.map(i => `
+              <span class="inv-chip${i.quantity===0?' zero':''}">
+                <span class="ic-name">${name} ${i.spec}%</span>
+                <span class="ic-qty">${i.quantity}개</span>
+              </span>`
+            ).join('')
+          ).join('');
+
+      dealerSection = `
+        <div class="dealer-info-section">
+          <div class="dealer-info-title">선택 대리점 정보</div>
+          <div style="background:var(--surface-2); border-radius:10px; padding:12px 14px; margin-bottom:10px;">
+            <div style="font-weight:700; font-size:14px; margin-bottom:4px;">${dealer.dealer_name}</div>
+            <div style="font-size:12px; color:var(--text-2);">${dealer.dealer_phone || '-'}</div>
+            <div style="font-size:12px; color:var(--text-2); margin-top:2px;">${dealer.dealer_address || '-'}</div>
+          </div>
+          <div class="dealer-info-title">재고현황</div>
+          <div class="inv-chip-wrap">${chips}</div>
+        </div>
+      `;
+    }
+  }
+
+  document.getElementById('summaryBody').innerHTML = `
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+      <div class="stat-card-new">
+        <div class="s-info">
+          <div class="s-label">총 발급건수</div>
+          <div class="s-value">${total.toLocaleString()}</div>
+          <div class="period-label">${period}</div>
+        </div>
+      </div>
+      <div class="stat-card-new">
+        <div class="s-info">
+          <div class="s-label">카카오 발송</div>
+          <div class="s-value">${sent.toLocaleString()}</div>
+          <div class="s-change neu">${total > 0 ? Math.round(sent/total*100) : 0}% 발송률</div>
+          <div class="period-label">${period}</div>
+        </div>
+      </div>
+    </div>
+    ${dealerSection}
+  `;
+}
+
+async function handleLogout() {
+  await supabaseClient.auth.signOut();
+  window.location.href = '../index.html';
+}
+
+init();
+</script>
+</body>
+</html>

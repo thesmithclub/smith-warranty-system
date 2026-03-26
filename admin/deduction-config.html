@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>1롤 차감설정 - THE SMITH</title>
+  <link rel="stylesheet" href="../css/admin-theme.css">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    .config-section {
+      background: var(--bg);
+      border-radius: 16px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      margin-bottom: 24px;
+    }
+    .config-section-title {
+      background: var(--surface-2);
+      padding: 14px 20px;
+      font-size: 14px; font-weight: 700;
+      color: var(--smith-green-dark);
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 8px;
+    }
+    .config-body { padding: 24px; }
+
+    .roll-length-wrap {
+      display: flex; align-items: center; gap: 14px;
+      margin-bottom: 0;
+    }
+    .roll-length-wrap label { font-size: 14px; font-weight: 600; color: var(--text-1); white-space: nowrap; }
+    .roll-length-input {
+      width: 100px; padding: 10px 14px;
+      border: 1.5px solid var(--border); border-radius: 10px;
+      font-size: 18px; font-weight: 800; text-align: center;
+      background: var(--surface-2); color: var(--primary);
+      outline: none;
+    }
+    .roll-length-input:focus { border-color: var(--primary); }
+    .roll-unit { font-size: 14px; color: var(--text-2); font-weight: 600; }
+
+    .pos-table { width: 100%; border-collapse: collapse; }
+    .pos-table th {
+      background: var(--surface-2); padding: 10px 16px;
+      text-align: left; font-size: 11px; font-weight: 600;
+      color: var(--text-2); border-bottom: 1px solid var(--border);
+    }
+    .pos-table td {
+      padding: 12px 16px; border-bottom: 1px solid var(--border);
+      vertical-align: middle;
+    }
+    .pos-table tr:last-child td { border-bottom: none; }
+    .pos-table tr:hover td { background: var(--surface-2); }
+
+    .pos-label { font-size: 14px; font-weight: 600; color: var(--text-1); }
+    .pos-meter-input {
+      width: 90px; padding: 8px 12px;
+      border: 1.5px solid var(--border); border-radius: 8px;
+      font-size: 15px; font-weight: 700; text-align: center;
+      background: var(--surface-2); color: var(--primary);
+      outline: none;
+    }
+    .pos-meter-input:focus { border-color: var(--primary); }
+    .pos-unit { font-size: 12px; color: var(--text-3); margin-left: 4px; }
+
+    .calc-info {
+      font-size: 12px; color: var(--text-3);
+      margin-top: 4px;
+    }
+
+    .save-bar {
+      display: flex; justify-content: flex-end; gap: 10px;
+      padding: 20px 24px;
+      border-top: 1px solid var(--border);
+      background: var(--surface-2);
+    }
+
+    .info-box {
+      background: var(--surface-2);
+      border-left: 3px solid var(--smith-green);
+      border-radius: 8px;
+      padding: 12px 16px;
+      font-size: 12px; color: var(--text-2);
+      line-height: 1.7;
+    }
+  </style>
+</head>
+<body>
+
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-mark">
+      <div class="logo-icon">✦</div>
+      <div>
+        <div class="logo-text">THE SMITH</div>
+        <div class="logo-sub">WARRANTY SYSTEM</div>
+      </div>
+    </div>
+  </div>
+  <nav class="sidebar-nav">
+    <a href="dashboard.html"        class="nav-item"> 대시보드</a>
+    <a href="register.html"         class="nav-item"> 보증서 등록</a>
+    <a href="warranties.html"       class="nav-item"> 보증서 조회</a>
+    <a href="stats.html"            class="nav-item"> 통계보기</a>
+    <a href="dealers.html"          class="nav-item"> 대리점 관리</a>
+    <a href="products.html"         class="nav-item"> 제품 관리</a>
+    <a href="inventory.html"        class="nav-item"> 재고 현황</a>
+    <a href="deduction-config.html" class="nav-item active"> 1롤 차감설정</a>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="user-profile">
+      <div>
+        <div class="user-name" id="sidebarName">—</div>
+        <div class="user-role" id="sidebarRole">—</div>
+      </div>
+    </div>
+    <button class="logout-btn" onclick="handleLogout()">로그아웃</button>
+  </div>
+</aside>
+
+<div class="main-wrap">
+  <header class="main-header">
+    <div class="main-header-title">1롤 차감설정</div>
+  </header>
+
+  <div class="main-content" style="display:block; padding:28px 32px; max-width:700px;">
+
+    <!-- 안내 -->
+    <div class="info-box" style="margin-bottom:24px;">
+      보증서 등록 시 시공 위치별로 지정된 미터(m)가 해당 대리점 재고에서 자동 차감됩니다.<br>
+      1롤 길이와 위치별 차감 수치를 설정한 후 저장하면 모든 대리점 재고에 즉시 적용됩니다.
+    </div>
+
+    <!-- 1롤 길이 설정 -->
+    <div class="config-section">
+      <div class="config-section-title">📦 1롤 기본 길이</div>
+      <div class="config-body">
+        <div class="roll-length-wrap">
+          <label>필름 1롤 =</label>
+          <input type="number" id="rollLength" class="roll-length-input" min="1" max="999" step="0.1" value="33">
+          <span class="roll-unit">m</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 시공위치별 차감 수치 -->
+    <div class="config-section">
+      <div class="config-section-title">✂️ 시공위치별 차감 수치</div>
+      <table class="pos-table">
+        <thead>
+          <tr>
+            <th>시공위치</th>
+            <th>차감 수치</th>
+            <th>1롤 기준 시공 가능 횟수</th>
+          </tr>
+        </thead>
+        <tbody id="posTableBody"></tbody>
+      </table>
+      <div class="save-bar">
+        <button class="btn btn-outline" onclick="resetDefaults()">기본값으로 초기화</button>
+        <button class="btn btn-primary" onclick="saveConfig()">저장</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<script src="../js/demo-data.js"></script>
+<script src="../js/config.js"></script>
+<script>
+
+const POS_LABELS = {
+  front:      '전면',
+  side1:      '측면 1열',
+  side2:      '측면 2열',
+  side3:      '측면 3열',
+  rear:       '후면',
+  glass_roof: '글래스루프 (썬루프)',
+  panorama:   '파노라마',
+};
+
+async function init() {
+  const session = await requireAuth('../index.html');
+  if (!session) return;
+  const profile = await getCurrentProfile();
+  if (!profile || profile.role !== 'admin') {
+    window.location.href = 'dashboard.html';
+    return;
+  }
+  document.getElementById('sidebarName').textContent = profile.dealer_name;
+  document.getElementById('sidebarRole').textContent = '관리자';
+
+  loadConfig();
+}
+
+function loadConfig() {
+  const cfg = getDeductionConfig();
+  document.getElementById('rollLength').value = cfg.roll_length;
+  renderTable(cfg);
+}
+
+function renderTable(cfg) {
+  const rollLen = parseFloat(document.getElementById('rollLength').value) || 33;
+  const tbody = document.getElementById('posTableBody');
+  tbody.innerHTML = Object.entries(POS_LABELS).map(([key, label]) => {
+    const val = cfg.positions[key] !== undefined ? cfg.positions[key] : 0;
+    const times = val > 0 ? Math.floor(rollLen / val) : '—';
+    return `
+      <tr>
+        <td><span class="pos-label">${label}</span></td>
+        <td>
+          <input type="number" class="pos-meter-input" id="pos_${key}"
+            value="${val}" min="0" max="99" step="0.1"
+            oninput="updateCalc('${key}')">
+          <span class="pos-unit">m</span>
+        </td>
+        <td id="calc_${key}" style="font-size:13px; color:var(--text-2);">
+          약 <strong style="color:var(--primary);">${times}</strong>회
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function updateCalc(key) {
+  const rollLen = parseFloat(document.getElementById('rollLength').value) || 33;
+  const val = parseFloat(document.getElementById(`pos_${key}`).value) || 0;
+  const times = val > 0 ? Math.floor(rollLen / val) : '—';
+  const calcEl = document.getElementById(`calc_${key}`);
+  if (calcEl) calcEl.innerHTML = `약 <strong style="color:var(--primary);">${times}</strong>회`;
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('rollLength').addEventListener('input', () => {
+    const cfg = getCurrentFormValues();
+    renderTable(cfg);
+  });
+});
+
+function getCurrentFormValues() {
+  const rollLen = parseFloat(document.getElementById('rollLength').value) || 33;
+  const positions = {};
+  Object.keys(POS_LABELS).forEach(key => {
+    const el = document.getElementById(`pos_${key}`);
+    positions[key] = el ? (parseFloat(el.value) || 0) : 0;
+  });
+  return { roll_length: rollLen, positions };
+}
+
+function saveConfig() {
+  const cfg = getCurrentFormValues();
+  saveDeductionConfig(cfg);
+  showToast('차감 설정이 저장되었습니다.', 'success');
+}
+
+function resetDefaults() {
+  if (!confirm('기본값으로 초기화하시겠습니까?')) return;
+  saveDeductionConfig(JSON.parse(JSON.stringify(DEFAULT_DEDUCTION_CONFIG)));
+  loadConfig();
+  showToast('기본값으로 초기화되었습니다.');
+}
+
+function showToast(msg, type = 'success') {
+  const t = document.createElement('div');
+  t.className = `toast ${type}`;
+  t.textContent = msg;
+  document.getElementById('toastContainer').appendChild(t);
+  setTimeout(() => t.remove(), 3000);
+}
+
+async function handleLogout() {
+  await supabaseClient.auth.signOut();
+  window.location.href = '../index.html';
+}
+
+init();
+</script>
+</body>
+</html>

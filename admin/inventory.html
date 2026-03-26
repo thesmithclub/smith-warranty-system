@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>재고 현황 — THE SMITH</title>
+  <link rel="stylesheet" href="../css/admin-theme.css">
+  <style>
+    /* 검색 섹션 */
+    .search-section {
+      background: var(--bg);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 20px;
+      margin-bottom: 20px;
+      position: relative;
+    }
+    .search-section-title {
+      font-size: 13px; font-weight: 700; color: var(--text-2);
+      margin-bottom: 10px; letter-spacing: .3px;
+    }
+    .dealer-search-wrap {
+      position: relative;
+    }
+    .dealer-search-input {
+      width: 100%;
+      padding: 11px 16px;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm);
+      font-size: 14px; color: var(--text-1);
+      outline: none; background: var(--bg);
+      transition: border-color .18s, background .18s;
+      font-family: inherit;
+    }
+    .dealer-search-input:focus { border-color: var(--primary-lt); background: var(--surface-2); }
+    .dealer-search-icon {
+      position: absolute; left: 13px; top: 50%;
+      transform: translateY(-50%);
+      font-size: 16px; color: var(--text-3);
+      pointer-events: none;
+    }
+    .dealer-search-clear {
+      position: absolute; right: 10px; top: 50%;
+      transform: translateY(-50%);
+      background: none; border: none;
+      font-size: 16px; color: var(--text-3);
+      cursor: pointer; padding: 4px;
+      display: none;
+    }
+    .dealer-search-clear:hover { color: var(--text-1); }
+
+    /* 검색 결과 드롭다운 */
+    .dealer-results {
+      position: absolute; top: calc(100% + 6px); left: 0; right: 0;
+      background: var(--surface-2);
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm);
+      box-shadow: var(--shadow);
+      z-index: 100;
+      max-height: 300px; overflow-y: auto;
+      display: none;
+    }
+    .dealer-results.open { display: block; }
+    .dealer-result-item {
+      display: flex; align-items: center; gap: 12px;
+      padding: 11px 16px;
+      cursor: pointer;
+      border-bottom: 1px solid var(--border);
+      transition: background .12s;
+    }
+    .dealer-result-item:last-child { border-bottom: none; }
+    .dealer-result-item:hover { background: var(--primary-pale); }
+    /* dealer-result-avatar 제거됨 */
+    .dealer-result-name { font-size: 14px; font-weight: 700; color: var(--text-1); }
+    .dealer-result-sub  { font-size: 12px; color: var(--text-2); margin-top: 1px; }
+    .dealer-results-empty {
+      padding: 20px; text-align: center;
+      font-size: 13px; color: var(--text-3);
+    }
+
+    /* 선택된 대리점 카드 */
+    .selected-dealer-card {
+      background: linear-gradient(135deg, var(--primary-dk), var(--primary));
+      border-radius: var(--radius-sm);
+      padding: 14px 16px;
+      display: flex; align-items: center; gap: 14px;
+      margin-top: 14px;
+      cursor: pointer;
+    }
+    /* selected-dealer-avatar 제거됨 */
+    .selected-dealer-info { flex: 1; min-width: 0; }
+    .selected-dealer-name { font-size: 15px; font-weight: 700; color: white; }
+    .selected-dealer-sub  { font-size: 12px; color: rgba(255,255,255,.7); margin-top: 2px; }
+    .selected-dealer-change {
+      font-size: 11px; color: rgba(255,255,255,.6);
+      padding: 4px 10px; border-radius: 20px;
+      border: 1px solid rgba(255,255,255,.3);
+      white-space: nowrap;
+    }
+
+    /* ── 재고 테이블 ── */
+    .inv-table-wrap {
+      background: var(--bg);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      margin-bottom: 12px;
+    }
+
+    /* 제품 그룹 헤더 (접기/펼치기) */
+    .product-group-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 16px;
+      background: var(--surface-2);
+      border-left: 3px solid var(--primary);
+      cursor: pointer; user-select: none;
+      transition: background 0.15s;
+    }
+    .product-group-header:hover { background: var(--border); }
+    .product-group-name { font-size: 14px; font-weight: 700; color: var(--primary); }
+    .product-group-meta { display: flex; align-items: center; gap: 12px; }
+    .product-group-total { font-size: 12px; color: var(--text-2); }
+    .group-toggle { font-size: 11px; color: var(--text-3); transition: transform 0.2s; }
+    .group-toggle.collapsed { transform: rotate(-90deg); }
+
+    /* 테이블 */
+    .inv-tbl { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .inv-tbl th {
+      background: var(--surface-2); padding: 7px 14px;
+      text-align: left; font-size: 11px; font-weight: 600;
+      color: var(--text-3); border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+    .inv-tbl td {
+      padding: 9px 14px; border-bottom: 1px solid var(--border);
+      vertical-align: middle;
+    }
+    .inv-tbl tr:last-child td { border-bottom: none; }
+    .inv-tbl tr:hover td { background: var(--surface-2); }
+
+    .spec-chip {
+      display: inline-block; padding: 2px 10px;
+      background: var(--surface-2); color: var(--primary);
+      border-radius: 20px; font-size: 12px; font-weight: 700;
+    }
+    .spec-chip.zero   { color: var(--text-3); background: var(--border); }
+    .spec-chip.low    { color: #e67e22; }
+    .spec-chip.danger { color: var(--red); }
+
+    /* 수량 컨트롤 (인라인) */
+    .qty-ctrl { display: flex; align-items: center; gap: 6px; }
+    .qty-btn {
+      width: 26px; height: 26px; border-radius: 6px; border: 1px solid var(--border);
+      background: var(--surface-2); font-size: 16px; font-weight: 700;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      color: var(--text-2); transition: all .15s; flex-shrink: 0;
+    }
+    .qty-btn:hover { border-color: var(--primary); color: var(--primary); background: var(--primary-pale); }
+    .qty-input {
+      width: 52px; text-align: center; padding: 4px 6px;
+      border: 1.5px solid var(--border); border-radius: 6px;
+      font-size: 13px; font-weight: 700;
+      background: var(--bg); color: var(--text-1); outline: none;
+    }
+    .qty-input:focus { border-color: var(--primary-lt); }
+
+    /* 미터 진행 바 */
+    .meter-wrap { min-width: 120px; }
+    .meter-bar-bg {
+      height: 5px; border-radius: 4px; background: var(--border);
+      margin-top: 4px; overflow: hidden;
+    }
+    .meter-bar-fill { height: 100%; border-radius: 4px; transition: width 0.3s; }
+    .meter-bar-fill.ok     { background: var(--smith-green); }
+    .meter-bar-fill.low    { background: #e67e22; }
+    .meter-bar-fill.out    { background: #e74c3c; }
+    .meter-text { font-size: 11px; font-weight: 600; white-space: nowrap; }
+    .meter-text.ok   { color: var(--smith-green); }
+    .meter-text.low  { color: #e67e22; }
+    .meter-text.out  { color: #e74c3c; }
+
+    .del-btn {
+      background: none; border: none; cursor: pointer;
+      color: var(--text-3); font-size: 14px; padding: 3px 6px;
+      border-radius: 4px; transition: all .15s;
+    }
+    .del-btn:hover { color: var(--red); background: #ffeaea; }
+
+    /* 요약 바 */
+    .inv-summary-bar {
+      display: flex; gap: 16px; flex-wrap: wrap;
+      background: var(--surface-2); border-radius: var(--radius);
+      padding: 12px 20px; margin-bottom: 16px; align-items: center;
+    }
+    .inv-summary-item { font-size: 12px; color: var(--text-2); }
+    .inv-summary-item strong { color: var(--text-1); font-size: 15px; }
+
+    /* 읽기 전용 모드 */
+    .readonly-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: var(--surface-2);
+      color: var(--yellow);
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 12px; font-weight: 600;
+      margin-bottom: 20px;
+    }
+
+    /* 빈 재고 */
+    .inv-empty {
+      padding: 60px; text-align: center; color: var(--text-3); font-size: 14px;
+    }
+    .inv-empty-icon { font-size: 40px; margin-bottom: 12px; }
+
+    /* 재고 추가 버튼 */
+    .add-inv-card {
+      background: var(--bg);
+      box-shadow: var(--shadow-sm);
+      border: 2px dashed var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      cursor: pointer;
+      transition: all .18s;
+      margin-bottom: 16px;
+    }
+    .add-inv-card:hover { background: var(--primary-pale); border-color: var(--primary); }
+  </style>
+</head>
+<body>
+
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-mark">
+      <div class="logo-icon">✦</div>
+      <div>
+        <div class="logo-text">THE SMITH</div>
+        <div class="logo-sub">WARRANTY SYSTEM</div>
+      </div>
+    </div>
+  </div>
+  <nav class="sidebar-nav">
+    <a href="dashboard.html" class="nav-item"> 대시보드</a>
+    <a href="register.html" class="nav-item"> 보증서 등록</a>
+    <a href="warranties.html" class="nav-item"> 보증서 조회</a>
+    <a href="stats.html" class="nav-item"> 통계보기</a>
+    <a href="dealers.html" class="nav-item" id="navDealers" style="display:none;"> 대리점 관리</a>
+    <a href="products.html" class="nav-item" id="navProducts" style="display:none;"> 제품 관리</a>
+    <a href="inventory.html" class="nav-item active" id="navInventory"> 재고 현황</a>
+    <a href="deduction-config.html" class="nav-item"> 1롤 차감설정</a>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="user-profile">
+      <div>
+        <div class="user-name" id="sidebarName">—</div>
+        <div class="user-role" id="sidebarRole">—</div>
+      </div>
+    </div>
+    <button class="logout-btn" onclick="handleLogout()">
+      로그아웃
+    </button>
+  </div>
+</aside>
+
+<div class="main-wrap">
+  <header class="main-header">
+    <div class="main-header-title">대리점별 재고 현황</div>
+    <div class="main-header-right" id="headerRight"></div>
+  </header>
+  <div class="main-content" style="display:block; padding:28px 32px;">
+
+    <!-- 관리자: 대리점 검색 -->
+    <div id="adminSearchWrap" style="display:none;">
+      <div class="search-section">
+        <div class="search-section-title">대리점 검색</div>
+        <div class="dealer-search-wrap" id="searchWrap">
+          <input type="text" class="dealer-search-input" id="dealerSearchInput"
+            placeholder="대리점명 또는 연락처, 주소 입력..."
+            oninput="onSearchInput(this.value)"
+            onfocus="showResults()"
+            autocomplete="off">
+          <button class="dealer-search-clear" id="searchClearBtn" onclick="clearSearch()">✕</button>
+          <div class="dealer-results" id="dealerResults"></div>
+        </div>
+        <!-- 선택된 대리점 표시 -->
+        <div id="selectedDealerCard" style="display:none;"></div>
+      </div>
+    </div>
+
+    <!-- 딜러: 읽기 전용 안내 -->
+    <div id="readonlyBanner" style="display:none;">
+      <div class="readonly-badge">조회 전용 — 재고 수량 변경은 관리자에게 문의하세요</div>
+    </div>
+
+    <!-- 안내 메시지 (대리점 미선택 시) -->
+    <div id="noSelectionMsg" style="display:none;">
+      <div style="background:var(--bg);border-radius:var(--radius);box-shadow:var(--shadow);padding:60px;text-align:center;color:var(--text-3);">
+        <div style="font-size:16px;font-weight:700;color:var(--text-2);margin-bottom:8px;">대리점을 검색하세요</div>
+        <div style="font-size:13px;">위 검색창에서 대리점을 찾아 선택하면 재고 현황을 조회할 수 있습니다.</div>
+      </div>
+    </div>
+
+    <!-- 재고 목록 -->
+    <div id="invContent"></div>
+
+  </div>
+</div>
+
+<!-- 재고 항목 추가 모달 (관리자 전용) -->
+<div class="modal-overlay" id="addInvModal">
+  <div class="modal-box" style="max-width:440px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+      <h3 class="modal-title">재고 항목 추가</h3>
+      <button onclick="closeAddModal()" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--text-3);">✕</button>
+    </div>
+    <div class="form-group" style="margin-bottom:14px;">
+      <label class="form-label">제품 선택</label>
+      <select id="m_product" class="form-control" onchange="updateSpecOptions()">
+        <option value="">— 제품 선택 —</option>
+      </select>
+    </div>
+    <div class="form-group" style="margin-bottom:14px;">
+      <label class="form-label">농도</label>
+      <select id="m_spec" class="form-control">
+        <option value="">— 먼저 제품을 선택하세요 —</option>
+      </select>
+    </div>
+    <div class="form-group" style="margin-bottom:20px;">
+      <label class="form-label">초기 수량</label>
+      <input type="number" id="m_qty" class="form-control" min="0" value="0" placeholder="0">
+    </div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;">
+      <button class="btn btn-outline" onclick="closeAddModal()">취소</button>
+      <button class="btn btn-primary" onclick="submitAddInv()">추가</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<script src="../js/demo-data.js"></script>
+<script src="../js/config.js"></script>
+<script>
+let currentProfile = null;
+let isAdmin = false;
+let selectedDealerId = null;
+
+// ── 초기화 ──
+async function init() {
+  const session = await requireAuth('../index.html');
+  if (!session) return;
+
+  currentProfile = await getCurrentProfile();
+  if (!currentProfile) return;
+
+  isAdmin = currentProfile.role === 'admin';
+  document.getElementById('sidebarName').textContent   = currentProfile.dealer_name;
+  document.getElementById('sidebarRole').textContent   = isAdmin ? '관리자' : '대리점';
+
+  if (isAdmin) {
+    document.getElementById('navDealers').style.display    = 'flex';
+    document.getElementById('navProducts').style.display   = 'flex';
+
+    document.getElementById('adminSearchWrap').style.display = 'block';
+    document.getElementById('noSelectionMsg').style.display  = 'block';
+    document.getElementById('headerRight').innerHTML = `
+      <button class="hdr-btn hdr-btn-primary" id="addInvBtn" onclick="openAddModal()" style="display:none;">+ 재고 항목 추가</button>
+    `;
+    // 검색창 외부 클릭 시 닫기
+    document.addEventListener('click', e => {
+      if (!document.getElementById('searchWrap').contains(e.target)) {
+        document.getElementById('dealerResults').classList.remove('open');
+      }
+    });
+  } else {
+    // 대리점: 읽기 전용
+    document.getElementById('readonlyBanner').style.display = 'block';
+    selectedDealerId = currentProfile.id;
+    renderInventory();
+  }
+}
+
+// ── 검색 입력 ──
+function onSearchInput(val) {
+  const clearBtn = document.getElementById('searchClearBtn');
+  clearBtn.style.display = val ? 'block' : 'none';
+
+  if (!val.trim()) {
+    document.getElementById('dealerResults').classList.remove('open');
+    return;
+  }
+
+  const kw      = val.trim().toLowerCase();
+  const dealers = getUsers().filter(u => u.role === 'dealer');
+  const matched = dealers.filter(d =>
+    (d.dealer_name||'').toLowerCase().includes(kw) ||
+    (d.dealer_phone||'').includes(kw) ||
+    (d.dealer_address||'').toLowerCase().includes(kw)
+  ).slice(0, 8);
+
+  const resultsEl = document.getElementById('dealerResults');
+  if (matched.length === 0) {
+    resultsEl.innerHTML = `<div class="dealer-results-empty">일치하는 대리점이 없습니다</div>`;
+  } else {
+    resultsEl.innerHTML = matched.map(d => `
+      <div class="dealer-result-item" onclick="selectDealer('${d.id}')">
+        <div>
+          <div class="dealer-result-name">${d.dealer_name}</div>
+          <div class="dealer-result-sub">${d.dealer_phone || ''} ${d.dealer_address ? '· ' + d.dealer_address : ''}</div>
+        </div>
+      </div>
+    `).join('');
+  }
+  resultsEl.classList.add('open');
+}
+
+function showResults() {
+  const val = document.getElementById('dealerSearchInput').value;
+  if (val.trim()) onSearchInput(val);
+}
+
+function clearSearch() {
+  document.getElementById('dealerSearchInput').value = '';
+  document.getElementById('searchClearBtn').style.display = 'none';
+  document.getElementById('dealerResults').classList.remove('open');
+  // 선택 해제
+  selectedDealerId = null;
+  document.getElementById('selectedDealerCard').style.display = 'none';
+  document.getElementById('noSelectionMsg').style.display = 'block';
+  document.getElementById('invContent').innerHTML = '';
+  const addBtn = document.getElementById('addInvBtn');
+  if (addBtn) addBtn.style.display = 'none';
+}
+
+// ── 대리점 선택 ──
+function selectDealer(dealerId) {
+  const dealers = getUsers();
+  const dealer  = dealers.find(d => d.id === dealerId);
+  if (!dealer) return;
+
+  selectedDealerId = dealerId;
+
+  // 검색창 업데이트
+  document.getElementById('dealerSearchInput').value = dealer.dealer_name;
+  document.getElementById('searchClearBtn').style.display = 'block';
+  document.getElementById('dealerResults').classList.remove('open');
+
+  // 선택 카드 표시
+  const inv = getInventory().filter(i => i.dealer_id === dealerId);
+  const totalQty = inv.reduce((s,i) => s + (i.quantity||0), 0);
+  document.getElementById('selectedDealerCard').style.display = 'block';
+  document.getElementById('selectedDealerCard').innerHTML = `
+    <div class="selected-dealer-card">
+      <div class="selected-dealer-info">
+        <div class="selected-dealer-name">${dealer.dealer_name}</div>
+        <div class="selected-dealer-sub">${dealer.dealer_phone||''} ${dealer.dealer_address ? '· '+dealer.dealer_address : ''}</div>
+      </div>
+      <div style="text-align:right;flex-shrink:0;">
+        <div style="font-size:20px;font-weight:800;color:white;">${totalQty}<span style="font-size:12px;font-weight:500;margin-left:2px;">개</span></div>
+        <div style="font-size:11px;color:rgba(255,255,255,.6);">총 재고</div>
+      </div>
+      <div class="selected-dealer-change" onclick="clearSearch()">변경</div>
+    </div>`;
+
+  // 안내 메시지 숨기기
+  document.getElementById('noSelectionMsg').style.display = 'none';
+
+  // 추가 버튼 표시
+  const addBtn = document.getElementById('addInvBtn');
+  if (addBtn) addBtn.style.display = 'inline-flex';
+
+  renderInventory();
+}
+
+// ── 재고 렌더링 ──
+function renderInventory() {
+  // 관리자: 선택 카드 총 재고 수 갱신
+  if (isAdmin && selectedDealerId) {
+    const dealers = getUsers();
+    const dealer  = dealers.find(d => d.id === selectedDealerId);
+    const allInv  = getInventory().filter(i => i.dealer_id === selectedDealerId);
+    const totalQty = allInv.reduce((s,i) => s + (i.quantity||0), 0);
+    const card = document.getElementById('selectedDealerCard');
+    if (card && dealer) {
+      card.style.display = 'block';
+      card.innerHTML = `
+        <div class="selected-dealer-card">
+          <div class="selected-dealer-info">
+            <div class="selected-dealer-name">${dealer.dealer_name}</div>
+            <div class="selected-dealer-sub">${dealer.dealer_phone||''} ${dealer.dealer_address ? '· '+dealer.dealer_address : ''}</div>
+          </div>
+          <div style="text-align:right;flex-shrink:0;">
+            <div style="font-size:20px;font-weight:800;color:white;">${totalQty}<span style="font-size:12px;font-weight:500;margin-left:2px;">개</span></div>
+            <div style="font-size:11px;color:rgba(255,255,255,.6);">총 재고</div>
+          </div>
+          <div class="selected-dealer-change" onclick="clearSearch()">변경</div>
+        </div>`;
+    }
+  }
+  const inv      = getInventory().filter(i => i.dealer_id === selectedDealerId);
+  const products = getProducts();
+  const container = document.getElementById('invContent');
+
+  if (inv.length === 0) {
+    container.innerHTML = `
+      ${isAdmin ? `
+      <div class="add-inv-card" onclick="openAddModal()">
+        <span style="font-size:28px;">＋</span>
+        <div>
+          <div style="font-size:14px;font-weight:700;color:var(--primary)">재고 항목 추가</div>
+          <div style="font-size:12px;color:var(--text-2);margin-top:2px;">이 대리점에 제품·농도별 재고를 등록하세요</div>
+        </div>
+      </div>` : ''}
+      <div class="inv-empty">
+        <div>등록된 재고가 없습니다</div>
+      </div>`;
+    return;
+  }
+
+  // 제품명별 그룹
+  const grouped = {};
+  inv.forEach(item => {
+    if (!grouped[item.product_name]) grouped[item.product_name] = [];
+    grouped[item.product_name].push(item);
+  });
+
+  // 제품 순서: products 등록 순
+  const productOrder = products.map(p => p.name);
+  const sortedGroups = Object.keys(grouped).sort((a, b) => {
+    const ai = productOrder.indexOf(a);
+    const bi = productOrder.indexOf(b);
+    return (ai === -1 ? 999 : ai) - (bi === -1 ? 999 : bi);
+  });
+
+  let html = '';
+  if (isAdmin) {
+    html += `
+      <div class="add-inv-card" onclick="openAddModal()">
+        <span style="font-size:24px;color:var(--primary)">＋</span>
+        <div>
+          <div style="font-size:13px;font-weight:700;color:var(--primary)">재고 항목 추가</div>
+          <div style="font-size:12px;color:var(--text-2);margin-top:1px;">새 제품·농도 항목을 등록합니다</div>
+        </div>
+      </div>`;
+  }
+
+  const cfg = getDeductionConfig();
+
+  sortedGroups.forEach((productName, gIdx) => {
+    const items = grouped[productName].sort((a, b) => Number(a.spec) - Number(b.spec));
+    const totalQty = items.reduce((s, i) => s + (i.quantity || 0), 0);
+    const groupId = 'grp-' + gIdx;
+
+    // 그룹 전체 잔여 미터 합산
+    const totalM  = totalQty * cfg.roll_length;
+    const usedM   = items.reduce((s, i) => s + (i.used_meters || 0), 0);
+    const remM    = Math.max(0, totalM - usedM);
+    const mClass  = remM <= 0 ? 'out' : remM < cfg.roll_length ? 'low' : 'ok';
+
+    html += `
+      <div class="inv-table-wrap">
+        <div class="product-group-header" onclick="toggleGroup('${groupId}')">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <div class="product-group-name">${productName}</div>
+            <div class="product-group-meta">
+              <span class="product-group-total">${totalQty}롤</span>
+              <span class="meter-text ${mClass}" style="font-size:11px;">${remM.toFixed(1)}m 잔여</span>
+            </div>
+          </div>
+          <span class="group-toggle" id="${groupId}-arrow">▼</span>
+        </div>
+        <div id="${groupId}">
+          <table class="inv-tbl">
+            <thead>
+              <tr>
+                <th>농도</th>
+                <th>수량 (롤)</th>
+                <th>잔여 미터</th>
+                ${isAdmin ? '<th style="width:36px;"></th>' : ''}
+              </tr>
+            </thead>
+            <tbody>`;
+
+    items.forEach(item => {
+      const qty       = item.quantity || 0;
+      const itemRemM  = getRemainingMeters(item);
+      const itemTotalM = qty * cfg.roll_length;
+      const pct       = itemTotalM > 0 ? Math.min(100, (itemRemM / itemTotalM) * 100) : 0;
+      const iClass    = itemRemM <= 0 ? 'out' : itemRemM < cfg.roll_length ? 'low' : 'ok';
+      const warn      = itemRemM <= 0
+        ? '<span style="font-size:11px;color:var(--red);font-weight:600;">소진</span>'
+        : qty <= 2
+          ? '<span style="font-size:11px;color:#e67e22;font-weight:600;">부족</span>'
+          : '';
+
+      if (isAdmin) {
+        html += `
+              <tr>
+                <td><span class="spec-chip ${qty === 0 ? 'zero' : iClass === 'out' ? 'danger' : iClass === 'low' ? 'low' : ''}">${item.spec}%</span></td>
+                <td>
+                  <div class="qty-ctrl">
+                    <button class="qty-btn" onclick="adjustQty('${item.id}', -1)">−</button>
+                    <input type="number" class="qty-input" id="qty-${item.id}" value="${qty}" min="0"
+                      onchange="saveQtyDirect('${item.id}', this.value)">
+                    <button class="qty-btn" onclick="adjustQty('${item.id}', 1)">＋</button>
+                  </div>
+                </td>
+                <td>
+                  <div class="meter-wrap">
+                    <div class="meter-text ${iClass}">${itemRemM.toFixed(1)}m <span style="font-size:10px;color:var(--text-3);font-weight:400;">/ ${itemTotalM.toFixed(0)}m</span> ${warn}</div>
+                    <div class="meter-bar-bg"><div class="meter-bar-fill ${iClass}" style="width:${pct.toFixed(1)}%"></div></div>
+                  </div>
+                </td>
+                <td><button class="del-btn" title="삭제" onclick="deleteInvItem('${item.id}','${productName}','${item.spec}')">✕</button></td>
+              </tr>`;
+      } else {
+        html += `
+              <tr>
+                <td><span class="spec-chip ${qty === 0 ? 'zero' : iClass === 'out' ? 'danger' : iClass === 'low' ? 'low' : ''}">${item.spec}%</span></td>
+                <td style="font-weight:700;color:var(--text-1);">${qty}<span style="font-size:11px;font-weight:400;color:var(--text-3);margin-left:3px;">롤</span></td>
+                <td>
+                  <div class="meter-wrap">
+                    <div class="meter-text ${iClass}">${itemRemM.toFixed(1)}m <span style="font-size:10px;color:var(--text-3);font-weight:400;">/ ${itemTotalM.toFixed(0)}m</span> ${warn}</div>
+                    <div class="meter-bar-bg"><div class="meter-bar-fill ${iClass}" style="width:${pct.toFixed(1)}%"></div></div>
+                  </div>
+                </td>
+              </tr>`;
+      }
+    });
+
+    html += `
+            </tbody>
+          </table>
+        </div>
+      </div>`;
+  });
+
+  container.innerHTML = html;
+}
+
+// ── 그룹 접기/펼치기 ──
+function toggleGroup(groupId) {
+  const body  = document.getElementById(groupId);
+  const arrow = document.getElementById(groupId + '-arrow');
+  if (!body) return;
+  const collapsed = body.style.display === 'none';
+  body.style.display  = collapsed ? '' : 'none';
+  if (arrow) arrow.textContent = collapsed ? '▼' : '▶';
+}
+
+// ── 수량 조절 ──
+function adjustQty(id, delta) {
+  const inv = getInventory();
+  const item = inv.find(i => i.id === id);
+  if (!item) return;
+  item.quantity = Math.max(0, (item.quantity || 0) + delta);
+  saveInventory(inv);
+  const input = document.getElementById('qty-' + id);
+  if (input) input.value = item.quantity;
+  renderInventory();
+  showToast('재고가 업데이트되었습니다.');
+}
+
+function saveQtyDirect(id, val) {
+  const qty = Math.max(0, parseInt(val) || 0);
+  const inv = getInventory();
+  const item = inv.find(i => i.id === id);
+  if (!item) return;
+  item.quantity = qty;
+  saveInventory(inv);
+  renderInventory();
+  showToast('재고가 저장되었습니다.');
+}
+
+// ── 항목 삭제 ──
+function deleteInvItem(id, productName, spec) {
+  if (!confirm(`${productName} ${spec}% 재고 항목을 삭제하시겠습니까?`)) return;
+  const inv = getInventory().filter(i => i.id !== id);
+  saveInventory(inv);
+  renderInventory();
+  showToast(`${productName} ${spec}% 항목이 삭제되었습니다.`);
+}
+
+// ── 재고 추가 모달 ──
+function openAddModal() {
+  if (!isAdmin) return;
+  // 제품 드롭다운 세팅
+  const products = getProducts().filter(p => p.active);
+  document.getElementById('m_product').innerHTML =
+    '<option value="">— 제품 선택 —</option>' +
+    products.map(p => `<option value="${p.name}">${p.name}</option>`).join('');
+  document.getElementById('m_spec').innerHTML = '<option value="">— 먼저 제품을 선택하세요 —</option>';
+  document.getElementById('m_qty').value = '0';
+  document.getElementById('addInvModal').classList.add('active');
+}
+
+function closeAddModal() {
+  document.getElementById('addInvModal').classList.remove('active');
+}
+
+function updateSpecOptions() {
+  const productName = document.getElementById('m_product').value;
+  const products = getProducts();
+  const p = products.find(x => x.name === productName);
+  if (!p) {
+    document.getElementById('m_spec').innerHTML = '<option value="">— 먼저 제품을 선택하세요 —</option>';
+    return;
+  }
+  // 이미 해당 대리점에 등록된 spec은 제외
+  const existingSpecs = getInventory()
+    .filter(i => i.dealer_id === selectedDealerId && i.product_name === productName)
+    .map(i => i.spec);
+  const available = p.specs.filter(s => !existingSpecs.includes(s));
+  if (available.length === 0) {
+    document.getElementById('m_spec').innerHTML = '<option value="">이 제품의 모든 농도가 이미 등록되었습니다</option>';
+    return;
+  }
+  document.getElementById('m_spec').innerHTML =
+    '<option value="">— 농도 선택 —</option>' +
+    available.map(s => `<option value="${s}">${s}%</option>`).join('');
+}
+
+function submitAddInv() {
+  const productName = document.getElementById('m_product').value;
+  const spec        = document.getElementById('m_spec').value;
+  const qty         = Math.max(0, parseInt(document.getElementById('m_qty').value) || 0);
+
+  if (!productName) { showToast('제품을 선택해 주세요.', 'error'); return; }
+  if (!spec)         { showToast('농도를 선택해 주세요.', 'error'); return; }
+
+  const inv = getInventory();
+  const duplicate = inv.find(i => i.dealer_id === selectedDealerId && i.product_name === productName && i.spec === spec);
+  if (duplicate) { showToast('이미 등록된 항목입니다.', 'error'); return; }
+
+  inv.push({
+    id: 'inv-' + Date.now(),
+    dealer_id: selectedDealerId,
+    product_name: productName,
+    spec,
+    quantity: qty,
+  });
+  saveInventory(inv);
+  closeAddModal();
+  renderInventory();
+  showToast(`${productName} ${spec}% 재고 항목이 추가되었습니다.`);
+}
+
+// ── 토스트 ──
+function showToast(msg, type = 'success') {
+  const c = document.getElementById('toastContainer');
+  const t = document.createElement('div');
+  t.className = `toast ${type}`;
+  t.textContent = msg;
+  c.appendChild(t);
+  setTimeout(() => t.remove(), 3000);
+}
+
+// ── 로그아웃 ──
+async function handleLogout() {
+  await supabaseClient.auth.signOut();
+  window.location.href = '../index.html';
+}
+
+init();
+</script>
+</body>
+</html>

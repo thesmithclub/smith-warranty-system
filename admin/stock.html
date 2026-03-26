@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>내 재고 — THE SMITH</title>
+  <link rel="stylesheet" href="../css/admin-theme.css">
+  <style>
+    .stock-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 16px;
+      margin-bottom: 32px;
+    }
+
+    .product-card {
+      background: var(--bg);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .product-card-header {
+      padding: 14px 18px 10px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .product-card-name {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text-1);
+    }
+
+    .product-card-total {
+      font-size: 12px;
+      color: var(--text-3);
+      font-weight: 500;
+    }
+
+    .spec-list {
+      padding: 10px 18px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+    }
+
+    .spec-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .spec-badge {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-2);
+      background: var(--surface-2);
+      border-radius: 6px;
+      padding: 3px 9px;
+    }
+
+    .spec-qty {
+      font-size: 14px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .qty-normal { color: var(--text-1); }
+    .qty-low    { color: #f59e0b; }
+    .qty-zero   { color: #ef4444; }
+
+    .qty-warn {
+      font-size: 10px;
+      font-weight: 600;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+    .warn-low  { background: #fffbeb; color: #b45309; border:1px solid #fde68a; }
+    .warn-zero { background: #fef2f2; color: #b91c1c; border:1px solid #fecaca; }
+
+    /* 구매 버튼 영역 */
+    .purchase-banner {
+      background: linear-gradient(135deg, var(--primary-dk), var(--primary));
+      border-radius: var(--radius);
+      padding: 24px 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+
+    .purchase-banner-text {
+      color: white;
+    }
+
+    .purchase-banner-title {
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .purchase-banner-sub {
+      font-size: 13px;
+      opacity: 0.75;
+    }
+
+    .purchase-btn {
+      padding: 12px 28px;
+      background: white;
+      color: var(--primary-dk);
+      border: none;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: opacity 0.2s;
+      text-decoration: none;
+      display: inline-block;
+    }
+
+    .purchase-btn:hover { opacity: 0.88; }
+
+    /* 미터 진행 정보 */
+    .meter-info {
+      display: flex; align-items: center; gap: 6px;
+      margin-top: 4px; padding-top: 4px;
+      border-top: 1px dashed var(--border);
+    }
+    .meter-bar-bg {
+      flex: 1; height: 4px; border-radius: 3px;
+      background: var(--border); overflow: hidden;
+    }
+    .meter-bar-fill { height: 100%; border-radius: 3px; transition: width 0.3s; }
+    .meter-bar-fill.ok  { background: var(--smith-green); }
+    .meter-bar-fill.low { background: #f59e0b; }
+    .meter-bar-fill.out { background: #ef4444; }
+    .meter-label {
+      font-size: 10px; font-weight: 600; white-space: nowrap;
+    }
+    .meter-label.ok  { color: var(--smith-green); }
+    .meter-label.low { color: #f59e0b; }
+    .meter-label.out { color: #ef4444; }
+    .meter-total { font-size: 10px; color: var(--text-3); white-space: nowrap; }
+
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--text-3);
+    }
+
+    .empty-state .icon { font-size: 48px; margin-bottom: 12px; }
+    .empty-state .msg  { font-size: 15px; font-weight: 600; color: var(--text-2); }
+    .empty-state .sub  { font-size: 13px; margin-top: 6px; }
+
+    .summary-bar {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+
+    .summary-chip {
+      background: var(--bg);
+      border-radius: 10px;
+      box-shadow: var(--shadow);
+      padding: 12px 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .summary-chip .s-val {
+      font-size: 22px;
+      font-weight: 800;
+      color: var(--primary);
+    }
+
+    .summary-chip .s-lbl {
+      font-size: 12px;
+      color: var(--text-3);
+    }
+  </style>
+</head>
+<body>
+
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-mark">
+      <div class="logo-icon">✦</div>
+      <div>
+        <div class="logo-text">THE SMITH</div>
+        <div class="logo-sub">WARRANTY SYSTEM</div>
+      </div>
+    </div>
+  </div>
+  <nav class="sidebar-nav">
+    <a href="dashboard.html" class="nav-item">대시보드</a>
+    <a href="register.html" class="nav-item">보증서 등록</a>
+    <a href="warranties.html" class="nav-item" id="navWarranties" style="display:none;">보증서 조회</a>
+    <a href="stock.html" class="nav-item active">내 재고</a>
+    <a href="stats.html" class="nav-item" id="navStats" style="display:none;">통계보기</a>
+    <a href="dealers.html" class="nav-item" id="navDealers" style="display:none;">대리점 관리</a>
+    <a href="products.html" class="nav-item" id="navProducts" style="display:none;">제품 관리</a>
+    <a href="inventory.html" class="nav-item" id="navInventory" style="display:none;">재고 현황</a>
+    <a href="deduction-config.html" class="nav-item" id="navDeduction" style="display:none;">1롤 차감설정</a>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="user-profile">
+      <div>
+        <div class="user-name" id="sidebarName">—</div>
+        <div class="user-role" id="sidebarRole">—</div>
+      </div>
+    </div>
+    <button class="logout-btn" onclick="handleLogout()">로그아웃</button>
+  </div>
+</aside>
+
+<div class="main-wrap">
+  <header class="main-header">
+    <div class="main-header-title">내 재고</div>
+    <div class="main-header-right">
+      <button class="hdr-btn hdr-btn-ghost" onclick="renderStock()">새로고침</button>
+    </div>
+  </header>
+
+  <div class="main-content" style="display:block; padding:28px 32px;">
+
+    <!-- 요약 -->
+    <div class="summary-bar" id="summaryBar"></div>
+
+    <!-- 재고 카드 그리드 -->
+    <div id="stockGrid"></div>
+
+    <!-- 구매 배너 -->
+    <div class="purchase-banner">
+      <div class="purchase-banner-text">
+        <div class="purchase-banner-title">재고가 부족하신가요?</div>
+        <div class="purchase-banner-sub">더 스미스 공식 쇼핑몰에서 제품을 구매하실 수 있습니다.</div>
+      </div>
+      <a href="#" id="purchaseBtn" class="purchase-btn" target="_blank" onclick="goToPurchase(event)">
+        구매 페이지로 이동 →
+      </a>
+    </div>
+
+  </div>
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<script src="../js/demo-data.js"></script>
+<script src="../js/config.js"></script>
+<script>
+let currentProfile = null;
+
+async function init() {
+  const session = await requireAuth('../index.html');
+  if (!session) return;
+
+  currentProfile = await getCurrentProfile();
+  if (!currentProfile) return;
+
+  const isAdmin = currentProfile.role === 'admin';
+  document.getElementById('sidebarName').textContent = currentProfile.dealer_name;
+  document.getElementById('sidebarRole').textContent = isAdmin ? '관리자' : '대리점';
+
+  if (isAdmin) {
+    document.getElementById('navStats').style.display      = 'flex';
+    document.getElementById('navDealers').style.display    = 'flex';
+    document.getElementById('navProducts').style.display   = 'flex';
+    document.getElementById('navInventory').style.display  = 'flex';
+    document.getElementById('navDeduction').style.display  = 'flex';
+  } else {
+    document.getElementById('navWarranties').style.display = 'flex';
+  }
+
+  renderStock();
+}
+
+function renderStock() {
+  const dealerId = currentProfile?.id;
+  const inv = getInventory().filter(i => i.dealer_id === dealerId);
+
+  // 요약
+  const totalQty  = inv.reduce((s, i) => s + (i.quantity || 0), 0);
+  const lowCount  = inv.filter(i => (i.quantity || 0) > 0 && (i.quantity || 0) <= 2).length;
+  const zeroCount = inv.filter(i => (i.quantity || 0) === 0).length;
+
+  document.getElementById('summaryBar').innerHTML = `
+    <div class="summary-chip">
+      <div>
+        <div class="s-val">${totalQty}</div>
+        <div class="s-lbl">총 재고 수량</div>
+      </div>
+    </div>
+    <div class="summary-chip">
+      <div>
+        <div class="s-val" style="color:${lowCount > 0 ? '#f59e0b' : 'var(--primary)'}">${lowCount}</div>
+        <div class="s-lbl">재고 부족 항목</div>
+      </div>
+    </div>
+    <div class="summary-chip">
+      <div>
+        <div class="s-val" style="color:${zeroCount > 0 ? '#ef4444' : 'var(--primary)'}">${zeroCount}</div>
+        <div class="s-lbl">품절 항목</div>
+      </div>
+    </div>
+  `;
+
+  const grid = document.getElementById('stockGrid');
+
+  if (inv.length === 0) {
+    grid.innerHTML = `
+      <div class="empty-state">
+        <div class="icon">📦</div>
+        <div class="msg">등록된 재고가 없습니다</div>
+        <div class="sub">관리자에게 재고 등록을 요청해 주세요.</div>
+      </div>`;
+    return;
+  }
+
+  // 제품명별 그룹
+  const grouped = {};
+  inv.forEach(i => {
+    if (!grouped[i.product_name]) grouped[i.product_name] = [];
+    grouped[i.product_name].push(i);
+  });
+
+  let html = '<div class="stock-grid">';
+  Object.keys(grouped).forEach(productName => {
+    const items    = grouped[productName].sort((a, b) => Number(a.spec) - Number(b.spec));
+    const total    = items.reduce((s, i) => s + (i.quantity || 0), 0);
+
+    html += `
+      <div class="product-card">
+        <div class="product-card-header">
+          <div class="product-card-name">${productName}</div>
+          <div class="product-card-total">합계 ${total}개</div>
+        </div>
+        <div class="spec-list">`;
+
+    const cfg = getDeductionConfig();
+    items.forEach(item => {
+      const qty = item.quantity || 0;
+      const qtyClass = qty === 0 ? 'qty-zero' : qty <= 2 ? 'qty-low' : 'qty-normal';
+      const warnHtml = qty === 0
+        ? `<span class="qty-warn warn-zero">품절</span>`
+        : qty <= 2
+        ? `<span class="qty-warn warn-low">부족</span>`
+        : '';
+
+      const totalM = qty * cfg.roll_length;
+      const remM   = Math.max(0, getRemainingMeters(item));
+      const pct    = totalM > 0 ? Math.min(100, (remM / totalM) * 100) : 0;
+      const mClass = remM <= 0 ? 'out' : remM < cfg.roll_length ? 'low' : 'ok';
+
+      html += `
+        <div class="spec-row" style="flex-direction:column; align-items:stretch; gap:4px;">
+          <div style="display:flex; align-items:center; justify-content:space-between;">
+            <span class="spec-badge">${item.spec}%</span>
+            <div class="spec-qty ${qtyClass}">
+              ${qty}<span style="font-size:11px; font-weight:500; color:var(--text-3); margin-left:2px;">롤</span>
+              ${warnHtml}
+            </div>
+          </div>
+          <div class="meter-info">
+            <span class="meter-label ${mClass}">${remM.toFixed(1)}m</span>
+            <div class="meter-bar-bg">
+              <div class="meter-bar-fill ${mClass}" style="width:${pct.toFixed(1)}%"></div>
+            </div>
+            <span class="meter-total">/ ${totalM.toFixed(0)}m</span>
+          </div>
+        </div>`;
+    });
+
+    html += `</div></div>`;
+  });
+
+  html += '</div>';
+  grid.innerHTML = html;
+}
+
+function goToPurchase(e) {
+  e.preventDefault();
+  // 구매 페이지 URL이 설정되면 여기에 연결
+  showToast('구매 페이지 URL을 설정해 주세요.', 'info');
+}
+
+function showToast(msg, type = 'success') {
+  const c = document.getElementById('toastContainer');
+  const t = document.createElement('div');
+  t.className = `toast ${type}`;
+  t.textContent = msg;
+  c.appendChild(t);
+  setTimeout(() => t.remove(), 3000);
+}
+
+async function handleLogout() {
+  await supabaseClient.auth.signOut();
+  window.location.href = '../index.html';
+}
+
+init();
+</script>
+</body>
+</html>

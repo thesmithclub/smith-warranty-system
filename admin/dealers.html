@@ -1,0 +1,893 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>대리점 관리 - THE SMITH</title>
+  <link rel="stylesheet" href="../css/admin-theme.css">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    /* ── 대리점 카드 그리드 ── */
+    .dealer-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    .dealer-card {
+      background: var(--bg);
+      border-radius: 14px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      cursor: pointer;
+      transition: all 0.2s;
+      border: 2px solid transparent;
+    }
+    .dealer-card:hover {
+      box-shadow: 0 6px 24px rgba(45,106,79,0.15);
+      border-color: var(--smith-green);
+      transform: translateY(-2px);
+    }
+
+    .dealer-card-top {
+      padding: 14px 16px 10px;
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+    }
+    .dealer-info { flex: 1; min-width: 0; }
+    .dealer-name {
+      font-size: 15px; font-weight: 700; color: var(--smith-text);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .dealer-phone {
+      font-size: 12px; color: var(--smith-green-dark); font-weight: 500; margin-top: 3px;
+    }
+    .dealer-address {
+      font-size: 11px; color: var(--text-2); margin-top: 2px;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+
+    /* 통계 바 */
+    .dealer-stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      border-top: 1px solid var(--border);
+    }
+    .stat-box {
+      padding: 10px 8px;
+      text-align: center;
+      border-right: 1px solid var(--border);
+    }
+    .stat-box:last-child { border-right: none; }
+    .stat-val { font-size: 18px; font-weight: 700; color: var(--smith-green-dark); }
+    .stat-lbl { font-size: 10px; color: var(--smith-text-muted); margin-top: 2px; }
+
+    /* ── 검색/필터 ── */
+    .search-row {
+      display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px;
+    }
+    .search-row .form-control { max-width: 280px; }
+
+    /* ── 상세 슬라이드 패널 ── */
+    .detail-overlay {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.4);
+      z-index: 500;
+    }
+    .detail-overlay.open { display: block; }
+
+    .detail-panel {
+      position: fixed;
+      top: 0; right: -640px;
+      width: 640px; max-width: 96vw;
+      height: 100vh;
+      background: var(--bg);
+      box-shadow: -8px 0 40px rgba(0,0,0,0.4);
+      z-index: 501;
+      display: flex;
+      flex-direction: column;
+      transition: right 0.35s cubic-bezier(0.4,0,0.2,1);
+      overflow: hidden;
+    }
+    .detail-panel.open { right: 0; }
+
+    .detail-panel-header {
+      background: var(--smith-green-dark);
+      color: white;
+      padding: 20px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+    .detail-panel-title { font-size: 18px; font-weight: 700; }
+    .detail-panel-sub   { font-size: 13px; opacity: 0.75; margin-top: 2px; }
+    .close-panel-btn {
+      background: rgba(255,255,255,0.15);
+      border: none; color: white;
+      width: 36px; height: 36px;
+      border-radius: 50%; cursor: pointer;
+      font-size: 18px;
+      display: flex; align-items: center; justify-content: center;
+      transition: background 0.2s;
+    }
+    .close-panel-btn:hover { background: rgba(255,255,255,0.3); }
+
+    .detail-panel-stats {
+      display: grid; grid-template-columns: 1fr 1fr 1fr 1fr;
+      background: var(--surface-2);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .detail-stat {
+      padding: 14px 16px;
+      border-right: 1px solid var(--border);
+      text-align: center;
+    }
+    .detail-stat:last-child { border-right: none; }
+    .detail-stat-val { font-size: 22px; font-weight: 700; color: var(--primary); }
+    .detail-stat-lbl { font-size: 11px; color: var(--text-2); margin-top: 2px; }
+
+    .detail-panel-body {
+      flex: 1; overflow-y: auto;
+      padding: 20px 24px;
+    }
+
+    /* 섹션 타이틀 */
+    .section-title {
+      font-size: 14px; font-weight: 700;
+      color: var(--smith-green-dark);
+      margin: 20px 0 10px;
+      padding-bottom: 6px;
+      border-bottom: 2px solid #e0ece5;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .section-title:first-child { margin-top: 0; }
+
+    /* 대리점 정보 그리드 */
+    .info-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 4px;
+    }
+    .info-item { background: var(--surface-2); border-radius: 8px; padding: 10px 12px; }
+    .info-item-label { font-size: 11px; color: var(--text-2); margin-bottom: 3px; }
+    .info-item-value { font-size: 14px; font-weight: 600; color: var(--text-1); }
+
+    /* 보증서 미니 리스트 */
+    .mini-warranty-item {
+      display: flex; align-items: center; gap: 12px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      margin-bottom: 8px;
+      transition: background 0.15s;
+    }
+    .mini-warranty-item:hover { background: var(--surface-2); }
+    .mini-warranty-num { font-size: 11px; color: var(--text-3); font-family: monospace; }
+    .mini-warranty-info { flex: 1; min-width: 0; }
+    .mini-warranty-customer { font-size: 14px; font-weight: 600; }
+    .mini-warranty-meta { font-size: 12px; color: var(--text-2); margin-top: 2px; }
+    .mini-warranty-price { font-size: 13px; font-weight: 700; color: var(--primary); white-space: nowrap; }
+    .send-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .send-dot.sent    { background: var(--success); }
+    .send-dot.pending { background: var(--warning); }
+
+    /* 빈 상태 */
+    .empty-warranties { text-align: center; padding: 40px; color: var(--text-3); font-size: 14px; }
+
+    /* 재고 관리 */
+    .inv-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .inv-table th { background: var(--surface-2); padding: 8px 10px; text-align: left;
+      font-size: 11px; font-weight: 600; color: var(--text-2); border-bottom: 1px solid var(--border); }
+    .inv-table td { padding: 8px 10px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+    .inv-table tr:last-child td { border-bottom: none; }
+    .inv-qty-input { width: 60px; padding: 4px 6px; border: 1px solid var(--border);
+      border-radius: 6px; font-size: 13px; text-align: center; background: var(--bg); color: var(--text-1); }
+    .inv-add-form { display: flex; gap: 8px; flex-wrap: wrap; align-items: center;
+      margin-top: 10px; padding: 12px; background: var(--surface-2); border-radius: 10px; }
+    .inv-add-form select, .inv-add-form input { padding: 7px 10px; border: 1px solid var(--border);
+      border-radius: 8px; font-size: 13px; background: var(--bg); color: var(--text-1); }
+    .inv-add-form select { min-width: 120px; }
+    .inv-add-form input[type=number] { width: 80px; }
+    .inv-del-btn { background: none; border: none; cursor: pointer; color: var(--text-3);
+      font-size: 14px; padding: 2px 6px; border-radius: 4px; }
+    .inv-del-btn:hover { color: #e74c3c; background: #ffeaea; }
+    .inv-save-btn { background: none; border: none; cursor: pointer; color: var(--primary);
+      font-size: 12px; padding: 3px 8px; border-radius: 6px; border: 1px solid var(--primary); }
+    .inv-save-btn:hover { background: var(--primary); color: white; }
+
+    /* 신규 대리점 추가 모달 */
+    .add-dealer-form .form-row { margin-bottom: 0; }
+
+    /* ── 네온 상태 토글 (패널용) ── */
+    .neon-toggle {
+      display: inline-flex; border-radius: 20px; overflow: hidden;
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+    .neon-toggle-btn {
+      padding: 5px 14px; font-size: 12px; font-weight: 700;
+      cursor: pointer; border: none; transition: all 0.25s;
+      letter-spacing: 0.02em;
+    }
+    /* 활성 — 선택됨(ON) */
+    .neon-toggle-btn.active-on {
+      background: #0d2b1a;
+      color: #39ff7a;
+      box-shadow: 0 0 8px #39ff7a88, inset 0 0 8px #39ff7a22;
+      text-shadow: 0 0 6px #39ff7a;
+    }
+    /* 활성 — 미선택(OFF) */
+    .neon-toggle-btn.active-off {
+      background: #111; color: #2a4d35; cursor: pointer;
+    }
+    .neon-toggle-btn.active-off:hover { color: #39ff7a88; }
+    /* 비활성 — 선택됨(ON) */
+    .neon-toggle-btn.inactive-on {
+      background: #2b0d0d;
+      color: #ff4d4d;
+      box-shadow: 0 0 8px #ff4d4d88, inset 0 0 8px #ff4d4d22;
+      text-shadow: 0 0 6px #ff4d4d;
+    }
+    /* 비활성 — 미선택(OFF) */
+    .neon-toggle-btn.inactive-off {
+      background: #111; color: #4d2a2a; cursor: pointer;
+    }
+    .neon-toggle-btn.inactive-off:hover { color: #ff4d4d88; }
+
+    /* ── 카드 뱃지 (소형) ── */
+    .card-status-badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 2px 8px; border-radius: 20px; font-size: 10px; font-weight: 700;
+      border: 1px solid transparent; white-space: nowrap;
+    }
+    .card-status-badge.active {
+      background: #0d2b1a; color: #39ff7a; border-color: #39ff7a44;
+      box-shadow: 0 0 5px #39ff7a55; text-shadow: 0 0 4px #39ff7a;
+    }
+    .card-status-badge.inactive {
+      background: #2b0d0d; color: #ff4d4d; border-color: #ff4d4d44;
+      box-shadow: 0 0 5px #ff4d4d55; text-shadow: 0 0 4px #ff4d4d;
+    }
+    .card-status-dot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
+    .card-status-dot.active   { background: #39ff7a; box-shadow: 0 0 4px #39ff7a; }
+    .card-status-dot.inactive { background: #ff4d4d; box-shadow: 0 0 4px #ff4d4d; }
+
+    /* 활성 필터 탭 */
+    .active-filter-tabs {
+      display: inline-flex; border-radius: 8px; overflow: hidden;
+      border: 1px solid var(--border);
+    }
+    .af-tab {
+      padding: 8px 16px; font-size: 13px; font-weight: 600;
+      cursor: pointer; border: none; background: var(--surface-2);
+      color: var(--text-2); transition: all 0.18s;
+      border-right: 1px solid var(--border);
+    }
+    .af-tab:last-child { border-right: none; }
+    .af-tab.selected-all      { background: var(--smith-green-dark); color: #fff; }
+    .af-tab.selected-active   { background: #0d2b1a; color: #39ff7a; text-shadow: 0 0 6px #39ff7a; box-shadow: inset 0 0 8px #39ff7a22; }
+    .af-tab.selected-inactive { background: #2b0d0d; color: #ff4d4d; text-shadow: 0 0 6px #ff4d4d; box-shadow: inset 0 0 8px #ff4d4d22; }
+    .af-tab:not([class*="selected"]):hover { background: var(--border); color: var(--text-1); }
+
+    /* 정렬/필터 선택 */
+    .sort-select {
+      padding: 8px 8px 8px 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 13px;
+      background: var(--surface-2);
+      color: var(--text-1);
+      cursor: pointer;
+      appearance: none;
+      -webkit-appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23888' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 8px center;
+      padding-right: 28px;
+    }
+  </style>
+</head>
+<body>
+
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-mark">
+      <div class="logo-icon">✦</div>
+      <div>
+        <div class="logo-text">THE SMITH</div>
+        <div class="logo-sub">WARRANTY SYSTEM</div>
+      </div>
+    </div>
+  </div>
+  <nav class="sidebar-nav">
+    <a href="dashboard.html" class="nav-item"> 대시보드</a>
+    <a href="register.html" class="nav-item"> 보증서 등록</a>
+    <a href="warranties.html" class="nav-item"> 보증서 조회</a>
+    <a href="stats.html" class="nav-item"> 통계보기</a>
+    <a href="dealers.html" class="nav-item active"> 대리점 관리</a>
+    <a href="products.html" class="nav-item"> 제품 관리</a>
+    <a href="inventory.html" class="nav-item"> 재고 현황</a>
+    <a href="deduction-config.html" class="nav-item"> 1롤 차감설정</a>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="user-profile">
+      <div>
+        <div class="user-name" id="sidebarName">—</div>
+        <div class="user-role" id="sidebarRole">—</div>
+      </div>
+    </div>
+    <button class="logout-btn" onclick="handleLogout()">
+      로그아웃
+    </button>
+  </div>
+</aside>
+<div class="main-wrap">
+  <header class="main-header">
+    <div class="main-header-title">대리점 관리</div>
+    <div class="main-header-right">
+      <button class="hdr-btn hdr-btn-primary" onclick="openAddModal()">+ 대리점 추가</button>
+    </div>
+  </header>
+  <div class="main-content" style="display:block; padding:28px 32px;">
+
+  <!-- 요약 통계 -->
+  <div class="stats-row" style="grid-template-columns:repeat(2,1fr); max-width:600px; margin-bottom:24px;" id="summaryStats"></div>
+
+  <!-- 검색/필터/정렬 -->
+  <div class="search-row">
+    <input type="text" id="searchInput" class="form-control"
+      placeholder="대리점명, 연락처, 주소 검색..."
+      oninput="renderDealers()">
+    <select id="sortSelect" class="sort-select" onchange="renderDealers()">
+      <option value="name">이름순</option>
+      <option value="total_desc">보증서 많은순</option>
+      <option value="sent_desc">발송 많은순</option>
+      <option value="joined">등록일순</option>
+    </select>
+    <div class="active-filter-tabs">
+      <button class="af-tab selected-all" id="afAll"      onclick="setActiveFilter('all')">모두보기</button>
+      <button class="af-tab"              id="afActive"   onclick="setActiveFilter('active')">● 활성</button>
+      <button class="af-tab"              id="afInactive" onclick="setActiveFilter('inactive')">● 비활성</button>
+    </div>
+    <button class="btn btn-outline btn-sm" onclick="document.getElementById('searchInput').value=''; setActiveFilter('all')">초기화</button>
+  </div>
+
+  <!-- 대리점 카드 그리드 -->
+  <div class="dealer-grid" id="dealerGrid"></div>
+
+  </div>
+</div>
+
+<!-- ═══ 대리점 상세 슬라이드 패널 ═══ -->
+<div class="detail-overlay" id="detailOverlay" onclick="closePanel()"></div>
+<div class="detail-panel" id="detailPanel">
+  <div class="detail-panel-header">
+    <div>
+      <div class="detail-panel-title" id="panelTitle">대리점명</div>
+      <div class="detail-panel-sub" id="panelSub"></div>
+    </div>
+    <button class="close-panel-btn" onclick="closePanel()">✕</button>
+  </div>
+  <div class="detail-panel-stats" id="panelStats"></div>
+  <div class="detail-panel-body" id="panelBody"></div>
+</div>
+
+<!-- ═══ 대리점 추가/수정 모달 ═══ -->
+<div class="modal-overlay" id="dealerModal">
+  <div class="modal-box" style="max-width:520px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+      <h3 class="modal-title" style="margin:0;" id="modalTitle">대리점 추가</h3>
+      <button onclick="closeDealerModal()" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--text-3);">✕</button>
+    </div>
+    <div class="form-row" style="margin-bottom:14px;">
+      <div class="form-group">
+        <label class="form-label">대리점명 <span class="required">*</span></label>
+        <input type="text" id="m_name" class="form-control" placeholder="○○대리점">
+      </div>
+      <div class="form-group">
+        <label class="form-label">담당자 연락처 <span class="required">*</span></label>
+        <input type="tel" id="m_phone" class="form-control" placeholder="02-000-0000">
+      </div>
+    </div>
+    <div class="form-group" style="margin-bottom:14px;">
+      <label class="form-label">주소</label>
+      <input type="text" id="m_address" class="form-control" placeholder="시/도 구/군 ...">
+    </div>
+    <div class="form-row" style="margin-bottom:14px;">
+      <div class="form-group">
+        <label class="form-label">로그인 이메일 <span class="required">*</span></label>
+        <input type="email" id="m_email" class="form-control" placeholder="dealer@example.com">
+      </div>
+      <div class="form-group">
+        <label class="form-label">초기 비밀번호 <span class="required">*</span></label>
+        <input type="password" id="m_password" class="form-control" placeholder="8자 이상">
+      </div>
+    </div>
+    <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:20px;">
+      <button class="btn btn-outline" onclick="closeDealerModal()">취소</button>
+      <button class="btn btn-primary" id="modalSaveBtn" onclick="saveDealer()">저장</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<script src="../js/demo-data.js"></script>
+<script src="../js/config.js"></script>
+<script>
+
+let allDealerStats = []; // 통계 캐시
+let editingDealerId = null;
+
+// ── 초기화 ──
+async function init() {
+  const session = await requireAuth('../index.html');
+  if (!session) return;
+  const profile = await getCurrentProfile();
+  if (profile?.role !== 'admin') {
+    alert('관리자만 접근할 수 있습니다.');
+    window.location.href = 'dashboard.html';
+    return;
+  }
+  document.getElementById('sidebarName').textContent   = profile.dealer_name;
+  document.getElementById('sidebarRole').textContent   = profile.role === 'admin' ? '관리자' : '대리점';
+  buildStats();
+  renderDealers();
+}
+
+// ── 대리점 + 통계 계산 ──
+function buildStats() {
+  const dealers  = getUsers().filter(u => u.role === 'dealer');
+  const warranties = getWarranties();
+  const today = new Date().toISOString().split('T')[0];
+  const monthStart = today.slice(0,7) + '-01';
+
+  allDealerStats = dealers.map(d => {
+    const ws = warranties.filter(w => w.dealer_id === d.id);
+    const sent = ws.filter(w => w.kakao_sent).length;
+    const thisMonth = ws.filter(w => w.service_date >= monthStart).length;
+    const totalPrice = ws.reduce((sum, w) => sum + (w.service_price || 0), 0);
+    return {
+      ...d,
+      total: ws.length,
+      sent,
+      pending: ws.length - sent,
+      thisMonth,
+      totalPrice,
+      sendRate: ws.length > 0 ? Math.round(sent / ws.length * 100) : 0,
+      warranties: ws,
+    };
+  });
+
+  // 요약 통계
+  const totalDealers   = allDealerStats.length;
+  const totalWarranties = warranties.length;
+  const totalSent      = warranties.filter(w => w.kakao_sent).length;
+  const totalRevenue   = warranties.reduce((s,w) => s + (w.service_price||0), 0);
+
+  document.getElementById('summaryStats').innerHTML = `
+    <div class="stat-card-new">
+      <div class="s-info">
+        <div class="s-label">전체 대리점</div>
+        <div class="s-value">${totalDealers}</div>
+        <div class="s-change neu">등록된 대리점</div>
+      </div>
+    </div>
+    <div class="stat-card-new">
+      <div class="s-info">
+        <div class="s-label">총 보증서</div>
+        <div class="s-value">${totalWarranties}</div>
+        <div class="s-change neu">누적 발행 건수</div>
+      </div>
+    </div>
+  `;
+}
+
+// ── 대리점 카드 렌더링 ──
+let currentActiveFilter = 'all';
+
+function setActiveFilter(val) {
+  currentActiveFilter = val;
+  document.getElementById('afAll').className      = 'af-tab' + (val === 'all'      ? ' selected-all'      : '');
+  document.getElementById('afActive').className   = 'af-tab' + (val === 'active'   ? ' selected-active'   : '');
+  document.getElementById('afInactive').className = 'af-tab' + (val === 'inactive' ? ' selected-inactive' : '');
+  renderDealers();
+}
+
+function renderDealers() {
+  const keyword      = document.getElementById('searchInput').value.trim().toLowerCase();
+  const sort         = document.getElementById('sortSelect').value;
+  const activeFilter = currentActiveFilter;
+
+  let list = allDealerStats.filter(d => {
+    if (activeFilter === 'active'   && d.active === false) return false;
+    if (activeFilter === 'inactive' && d.active !== false) return false;
+    if (!keyword) return true;
+    return (d.dealer_name||'').toLowerCase().includes(keyword)
+        || (d.dealer_phone||'').includes(keyword)
+        || (d.dealer_address||'').toLowerCase().includes(keyword)
+        || (d.email||'').toLowerCase().includes(keyword);
+  });
+
+  list.sort((a, b) => {
+    if (sort === 'name')      return (a.dealer_name||'').localeCompare(b.dealer_name||'');
+    if (sort === 'total_desc')return b.total - a.total;
+    if (sort === 'sent_desc') return b.sent  - a.sent;
+    if (sort === 'rate_desc') return b.sendRate - a.sendRate;
+    if (sort === 'joined')    return (a.joined_at||'').localeCompare(b.joined_at||'');
+    return 0;
+  });
+
+  const grid = document.getElementById('dealerGrid');
+
+  if (list.length === 0) {
+    grid.innerHTML = `<div style="grid-column:1/-1; text-align:center; padding:60px; color:var(--text-3);">
+      <div style="font-size:14px; margin-bottom:12px; font-weight:700;">DR</div>
+      <div>검색 결과가 없습니다.</div>
+    </div>`;
+    return;
+  }
+
+  grid.innerHTML = list.map(d => `
+    <div class="dealer-card" onclick="openPanel('${d.id}')" style="${d.active === false ? 'opacity:0.6;' : ''}">
+      <div class="dealer-card-top">
+        <div class="dealer-info">
+          <div style="display:flex; align-items:center; gap:6px;">
+            <div class="dealer-name">${d.dealer_name}</div>
+            <span class="card-status-badge ${d.active === false ? 'inactive' : 'active'}">
+              <span class="card-status-dot ${d.active === false ? 'inactive' : 'active'}"></span>
+              ${d.active === false ? '비활성' : '활성'}
+            </span>
+          </div>
+          <div class="dealer-phone">${d.dealer_phone || '-'}</div>
+          <div class="dealer-address">${d.dealer_address || '-'}</div>
+        </div>
+      </div>
+      <div class="dealer-stats">
+        <div class="stat-box">
+          <div class="stat-val">${d.total}</div>
+          <div class="stat-lbl">전체 보증서</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-val">${d.thisMonth}</div>
+          <div class="stat-lbl">이번달</div>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ── 대리점 상세 패널 ──
+function openPanel(dealerId) {
+  const d = allDealerStats.find(x => x.id === dealerId);
+  if (!d) return;
+
+  document.getElementById('panelTitle').textContent = d.dealer_name;
+  document.getElementById('panelSub').textContent   = d.dealer_phone || '';
+
+  // 패널 통계
+  document.getElementById('panelStats').innerHTML = `
+    <div class="detail-stat">
+      <div class="detail-stat-val">${d.total}</div>
+      <div class="detail-stat-lbl">전체</div>
+    </div>
+    <div class="detail-stat">
+      <div class="detail-stat-val" style="color:var(--green);">${d.sent}</div>
+      <div class="detail-stat-lbl">발송완료</div>
+    </div>
+    <div class="detail-stat">
+      <div class="detail-stat-val" style="color:var(--yellow);">${d.pending}</div>
+      <div class="detail-stat-lbl">미발송</div>
+    </div>
+    <div class="detail-stat">
+      <div class="detail-stat-val">${d.thisMonth}</div>
+      <div class="detail-stat-lbl">이번달</div>
+    </div>
+  `;
+
+  // 패널 본문
+  const warrantyRows = d.warranties.length === 0
+    ? `<div class="empty-warranties">등록된 보증서가 없습니다.</div>`
+    : d.warranties
+        .sort((a,b) => b.service_date.localeCompare(a.service_date))
+        .map(w => `
+          <div class="mini-warranty-item">
+            <span class="send-dot ${w.kakao_sent ? 'sent' : 'pending'}" title="${w.kakao_sent ? '발송완료' : '미발송'}"></span>
+            <div class="mini-warranty-info">
+              <div class="mini-warranty-customer">${w.customer_name} · ${w.customer_car} (${w.car_number})</div>
+              <div class="mini-warranty-meta">${w.service_date} &nbsp;|&nbsp; <code style="font-size:11px;">${w.warranty_number}</code></div>
+            </div>
+            <div class="mini-warranty-price">${Number(w.service_price).toLocaleString()}원</div>
+          </div>
+        `).join('');
+
+  const totalRevStr = d.totalPrice > 0
+    ? `<span style="font-size:13px; font-weight:400; color:var(--smith-green);">${(d.totalPrice/10000).toFixed(0)}만원</span>`
+    : '';
+
+  const isActive = d.active !== false;
+  document.getElementById('panelBody').innerHTML = `
+    <div class="section-title">
+      대리점 정보
+      <div style="display:flex; align-items:center; gap:8px;">
+        <div class="neon-toggle" id="panelNeonToggle">
+          <button class="neon-toggle-btn ${isActive ? 'active-on' : 'active-off'}"
+            id="panelBtnActive"
+            onclick="${isActive ? '' : `toggleDealerActive('${d.id}')`}"
+            ${isActive ? 'disabled style="cursor:default;"' : ''}>활성</button>
+          <button class="neon-toggle-btn ${isActive ? 'inactive-off' : 'inactive-on'}"
+            id="panelBtnInactive"
+            onclick="${isActive ? `toggleDealerActive('${d.id}')` : ''}"
+            ${isActive ? '' : 'disabled style="cursor:default;"'}>비활성</button>
+        </div>
+        <button class="btn btn-outline btn-sm" onclick="openEditModal('${d.id}')">수정</button>
+      </div>
+    </div>
+    <div class="info-grid">
+      <div class="info-item">
+        <div class="info-item-label">대리점명</div>
+        <div class="info-item-value">${d.dealer_name}</div>
+      </div>
+      <div class="info-item">
+        <div class="info-item-label">연락처</div>
+        <div class="info-item-value">${d.dealer_phone || '-'}</div>
+      </div>
+      <div class="info-item" style="grid-column:1/-1;">
+        <div class="info-item-label">주소</div>
+        <div class="info-item-value">${d.dealer_address || '-'}</div>
+      </div>
+      <div class="info-item">
+        <div class="info-item-label">등록일</div>
+        <div class="info-item-value">${d.joined_at || '-'}</div>
+      </div>
+    </div>
+
+    <div class="section-title" style="margin-top:24px;">
+      재고 관리
+      <button class="btn btn-outline btn-sm" onclick="toggleInvAddForm('${d.id}')">+ 항목 추가</button>
+    </div>
+    <div id="invContent-${d.id}">${buildInvHtml(d.id)}</div>
+
+    <div class="section-title" style="margin-top:24px;">
+      보증서 발송 현황 ${totalRevStr}
+    </div>
+    ${warrantyRows}
+  `;
+
+  document.getElementById('detailOverlay').classList.add('open');
+  document.getElementById('detailPanel').classList.add('open');
+}
+
+function closePanel() {
+  document.getElementById('detailOverlay').classList.remove('open');
+  document.getElementById('detailPanel').classList.remove('open');
+}
+
+// ── 재고 관리 ──
+function buildInvHtml(dealerId) {
+  const inv = getInventory().filter(i => i.dealer_id === dealerId);
+  const products = getProducts().filter(p => p.active);
+
+  const tableRows = inv.length === 0
+    ? `<tr><td colspan="4" style="text-align:center; color:var(--text-3); padding:20px;">등록된 재고가 없습니다.</td></tr>`
+    : inv.map(i => `
+      <tr>
+        <td>${i.product_name}</td>
+        <td>${i.spec}%</td>
+        <td>
+          <input type="number" class="inv-qty-input" value="${i.quantity}" min="0"
+            onchange="updateInvQty('${i.id}', this.value)">
+        </td>
+        <td><button class="inv-del-btn" onclick="deleteInvItem('${i.id}', '${dealerId}')" title="삭제">✕</button></td>
+      </tr>
+    `).join('');
+
+  const productOptions = products.map(p => `<option value="${p.name}">${p.name}</option>`).join('');
+
+  return `
+    <table class="inv-table">
+      <thead>
+        <tr><th>제품명</th><th>농도</th><th>수량</th><th></th></tr>
+      </thead>
+      <tbody>${tableRows}</tbody>
+    </table>
+    <div id="invAddForm-${dealerId}" class="inv-add-form" style="display:none;">
+      <select id="invAddProduct-${dealerId}" onchange="updateInvSpecOptions('${dealerId}')">
+        <option value="">제품 선택</option>
+        ${productOptions}
+      </select>
+      <select id="invAddSpec-${dealerId}"><option value="">농도 선택</option></select>
+      <input type="number" id="invAddQty-${dealerId}" placeholder="수량" min="0" value="1">
+      <button class="btn btn-primary btn-sm" onclick="addInvItem('${dealerId}')">추가</button>
+    </div>
+  `;
+}
+
+function toggleInvAddForm(dealerId) {
+  const form = document.getElementById(`invAddForm-${dealerId}`);
+  if (form) form.style.display = form.style.display === 'none' ? 'flex' : 'none';
+}
+
+function updateInvSpecOptions(dealerId) {
+  const productName = document.getElementById(`invAddProduct-${dealerId}`).value;
+  const specSel = document.getElementById(`invAddSpec-${dealerId}`);
+  const specs = getSpecsByProductName(productName);
+  specSel.innerHTML = `<option value="">농도 선택</option>` + specs.map(s => `<option value="${s}">${s}%</option>`).join('');
+}
+
+function addInvItem(dealerId) {
+  const productName = document.getElementById(`invAddProduct-${dealerId}`).value;
+  const spec        = document.getElementById(`invAddSpec-${dealerId}`).value;
+  const qty         = parseInt(document.getElementById(`invAddQty-${dealerId}`).value) || 0;
+
+  if (!productName || !spec) { showToast('제품과 농도를 선택해 주세요.', 'error'); return; }
+
+  const inv = getInventory();
+  const existing = inv.find(i => i.dealer_id === dealerId && i.product_name === productName && i.spec === spec);
+  if (existing) {
+    existing.quantity += qty;
+  } else {
+    inv.push({ id: 'inv-' + Date.now(), dealer_id: dealerId, product_name: productName, spec, quantity: qty });
+  }
+  saveInventory(inv);
+  document.getElementById(`invContent-${dealerId}`).innerHTML = buildInvHtml(dealerId);
+  showToast('재고가 추가되었습니다.');
+}
+
+function updateInvQty(itemId, val) {
+  const inv = getInventory();
+  const item = inv.find(i => i.id === itemId);
+  if (item) { item.quantity = parseInt(val) || 0; saveInventory(inv); }
+}
+
+function deleteInvItem(itemId, dealerId) {
+  const inv = getInventory().filter(i => i.id !== itemId);
+  saveInventory(inv);
+  document.getElementById(`invContent-${dealerId}`).innerHTML = buildInvHtml(dealerId);
+  showToast('항목이 삭제되었습니다.');
+}
+
+// ── 대리점 활성/비활성 토글 ──
+function toggleDealerActive(dealerId) {
+  const users = getUsers();
+  const user = users.find(u => u.id === dealerId);
+  if (!user) return;
+
+  const newActive = user.active === false ? true : false;
+  user.active = newActive;
+  saveUsers(users);
+
+  // allDealerStats 캐시도 업데이트
+  const stat = allDealerStats.find(d => d.id === dealerId);
+  if (stat) stat.active = newActive;
+
+  // 패널 내 네온 토글 즉시 반영
+  const btnActive   = document.getElementById('panelBtnActive');
+  const btnInactive = document.getElementById('panelBtnInactive');
+  if (btnActive && btnInactive) {
+    btnActive.className   = `neon-toggle-btn ${newActive ? 'active-on' : 'active-off'}`;
+    btnInactive.className = `neon-toggle-btn ${newActive ? 'inactive-off' : 'inactive-on'}`;
+    if (newActive) {
+      btnActive.disabled = true; btnActive.style.cursor = 'default';
+      btnActive.onclick = null;
+      btnInactive.disabled = false; btnInactive.style.cursor = 'pointer';
+      btnInactive.onclick = () => toggleDealerActive(dealerId);
+    } else {
+      btnInactive.disabled = true; btnInactive.style.cursor = 'default';
+      btnInactive.onclick = null;
+      btnActive.disabled = false; btnActive.style.cursor = 'pointer';
+      btnActive.onclick = () => toggleDealerActive(dealerId);
+    }
+  }
+
+  // 카드 그리드 재렌더링
+  renderDealers();
+  showToast(`${user.dealer_name} 계정이 ${newActive ? '활성화' : '비활성화'}되었습니다.`);
+}
+
+// ── 대리점 추가 모달 ──
+function openAddModal() {
+  editingDealerId = null;
+  document.getElementById('modalTitle').textContent = '대리점 추가';
+  document.getElementById('modalSaveBtn').textContent = '저장';
+  ['m_name','m_phone','m_address','m_email','m_password'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+  document.getElementById('m_password').placeholder = '8자 이상';
+  document.getElementById('dealerModal').classList.add('active');
+}
+
+function openEditModal(dealerId) {
+  const d = allDealerStats.find(x => x.id === dealerId);
+  if (!d) return;
+  editingDealerId = dealerId;
+  document.getElementById('modalTitle').textContent = '대리점 정보 수정';
+  document.getElementById('modalSaveBtn').textContent = '수정 저장';
+  document.getElementById('m_name').value    = d.dealer_name || '';
+  document.getElementById('m_phone').value   = d.dealer_phone || '';
+  document.getElementById('m_address').value = d.dealer_address || '';
+  document.getElementById('m_email').value   = d.email || '';
+  document.getElementById('m_password').value = '';
+  document.getElementById('m_password').placeholder = '변경 시에만 입력';
+  document.getElementById('dealerModal').classList.add('active');
+}
+
+function closeDealerModal() {
+  document.getElementById('dealerModal').classList.remove('active');
+  editingDealerId = null;
+}
+
+function saveDealer() {
+  const name    = document.getElementById('m_name').value.trim();
+  const phone   = document.getElementById('m_phone').value.trim();
+  const address = document.getElementById('m_address').value.trim();
+  const email   = document.getElementById('m_email').value.trim();
+  const password= document.getElementById('m_password').value.trim();
+
+  if (!name || !phone || !email) {
+    showToast('필수 항목을 모두 입력해 주세요.', 'error'); return;
+  }
+  if (!editingDealerId && !password) {
+    showToast('비밀번호를 입력해 주세요.', 'error'); return;
+  }
+
+  const users = getUsers();
+
+  if (editingDealerId) {
+    // 수정
+    const u = users.find(x => x.id === editingDealerId);
+    if (u) {
+      u.dealer_name    = name;
+      u.dealer_phone   = phone;
+      u.dealer_address = address;
+      u.email          = email;
+      if (password) u.password = password;
+    }
+    localStorage.setItem('demo_users', JSON.stringify(users));
+    showToast(`"${name}" 정보가 수정되었습니다.`);
+  } else {
+    // 추가
+    if (users.find(u => u.email === email)) {
+      showToast('이미 사용 중인 이메일입니다.', 'error'); return;
+    }
+    users.push({
+      id: 'dealer-' + Date.now(),
+      email, password,
+      role: 'dealer',
+      dealer_name: name,
+      dealer_phone: phone,
+      dealer_address: address,
+      joined_at: new Date().toISOString().split('T')[0],
+    });
+    localStorage.setItem('demo_users', JSON.stringify(users));
+    showToast(`"${name}" 대리점이 추가되었습니다.`);
+  }
+
+  closeDealerModal();
+  closePanel();
+  buildStats();
+  renderDealers();
+}
+
+// ── 토스트 ──
+function showToast(msg, type = 'success') {
+  const container = document.getElementById('toastContainer');
+  const t = document.createElement('div');
+  t.className = `toast ${type}`;
+  t.textContent = msg;
+  container.appendChild(t);
+  setTimeout(() => t.remove(), 3000);
+}
+
+// ── 로그아웃 ──
+async function handleLogout() {
+  await supabaseClient.auth.signOut();
+  window.location.href = '../index.html';
+}
+
+init();
+</script>
+</body>
+</html>

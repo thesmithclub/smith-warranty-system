@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>보증서 위치 조절 캘리브레이터</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #0d1117;
+      font-family: 'Noto Sans KR', sans-serif;
+      display: flex;
+      justify-content: center;
+      padding: 30px 20px 60px;
+    }
+
+    /* ── 보증서 템플릿 ── */
+    #warrantyTemplate {
+      position: relative;
+      width: 794px;
+      height: 1123px;
+      overflow: hidden;
+      background: white;
+      flex-shrink: 0;
+      box-shadow: 0 4px 30px rgba(0,0,0,0.6);
+    }
+    #warrantyTemplate .wt-bg {
+      position: absolute; inset: 0;
+      width: 100%; height: 100%; display: block;
+      object-fit: fill;
+    }
+    .wf {
+      position: absolute;
+      font-size: 13px; font-weight: 700; color: #1a1a1a;
+      white-space: nowrap; line-height: 1; display: inline-block;
+      cursor: move;
+      transition: outline 0.1s;
+    }
+    .wf:hover { outline: 1.5px dashed rgba(76,175,120,0.7); outline-offset: 2px; }
+    .wf.selected { outline: 2px solid #4caf78 !important; outline-offset: 2px; }
+    .wf-sm { font-size: 11px; }
+    .wf-center { text-align: center; }
+    .wf-right { transform: translateX(-100%); text-align: right; }
+
+    /* 선택된 필드 하이라이트 */
+    .wf-highlight {
+      background: rgba(76,175,120,0.15) !important;
+      outline: 2px solid #4caf78 !important;
+    }
+
+    /* ── 플로팅 콘솔 ── */
+    #posConsole {
+      position: fixed;
+      top: 30px; right: 20px;
+      width: 300px;
+      background: #161b22;
+      border: 1px solid #2d4a3e;
+      border-radius: 14px;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.7);
+      color: #e0e0e0;
+      z-index: 9999;
+      font-size: 12px;
+    }
+
+    #consoleHeader {
+      background: linear-gradient(135deg, #1e3a2f, #2d4a3e);
+      border-radius: 14px 14px 0 0;
+      padding: 11px 14px;
+      display: flex; align-items: center; justify-content: space-between;
+      cursor: grab;
+    }
+    #consoleHeader:active { cursor: grabbing; }
+    .console-title { font-weight: 700; font-size: 13px; color: #4caf78; display: flex; align-items: center; gap: 7px; }
+
+    #consoleBody { max-height: calc(100vh - 100px); overflow-y: auto; padding: 10px 12px; }
+    #consoleBody::-webkit-scrollbar { width: 4px; }
+    #consoleBody::-webkit-scrollbar-track { background: transparent; }
+    #consoleBody::-webkit-scrollbar-thumb { background: #2d4a3e; border-radius: 2px; }
+
+    /* 섹션 헤더 */
+    .sec-head {
+      font-size: 10px; font-weight: 700; letter-spacing: .6px;
+      padding: 4px 0; margin: 8px 0 5px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+
+    /* 필드 행 */
+    .field-row {
+      background: rgba(255,255,255,0.03);
+      border-radius: 7px;
+      padding: 6px 8px;
+      margin-bottom: 5px;
+      cursor: pointer;
+      border: 1px solid transparent;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .field-row:hover { background: rgba(255,255,255,0.06); }
+    .field-row.active { border-color: #4caf78; background: rgba(76,175,120,0.08); }
+
+    .field-label {
+      font-size: 10px; font-weight: 600; color: #aaa;
+      margin-bottom: 4px; display: flex; justify-content: space-between;
+    }
+    .field-label span { color: #666; font-size: 9px; }
+
+    .slider-row {
+      display: flex; align-items: center; gap: 5px; margin-top: 3px;
+    }
+    .slider-key {
+      font-size: 9px; color: #666; width: 24px; flex-shrink: 0; font-weight: 700;
+    }
+    .slider-row input[type=range] {
+      flex: 1; height: 3px; cursor: pointer;
+      -webkit-appearance: none; appearance: none;
+      border-radius: 2px; outline: none;
+    }
+    .slider-row input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 11px; height: 11px;
+      border-radius: 50%; cursor: pointer;
+    }
+    .slider-row input[type=number] {
+      width: 44px;
+      background: #0d1117; border: 1px solid #2d4a3e;
+      border-radius: 4px; color: #e0e0e0;
+      padding: 2px 4px; font-size: 10px; text-align: right;
+      font-family: monospace;
+    }
+    .slider-row input[type=number]:focus { border-color: #4caf78; outline: none; }
+
+    /* 하단 버튼 영역 */
+    .console-footer {
+      padding: 10px 12px;
+      border-top: 1px solid rgba(255,255,255,0.07);
+      display: flex; gap: 6px; flex-wrap: wrap;
+    }
+    .con-btn {
+      flex: 1; padding: 6px 8px; border-radius: 6px;
+      border: none; cursor: pointer; font-size: 11px; font-weight: 600;
+      font-family: 'Noto Sans KR', sans-serif;
+      transition: opacity 0.15s;
+    }
+    .con-btn:hover { opacity: 0.8; }
+    .con-btn-green { background: #4caf78; color: #fff; }
+    .con-btn-ghost { background: rgba(255,255,255,0.08); color: #aaa; }
+    .con-btn-danger { background: rgba(255,80,80,0.15); color: #ff6b6b; }
+
+    .toggle-btn {
+      background: rgba(255,255,255,0.1); color: #aaa; border: none;
+      border-radius: 5px; padding: 3px 9px; font-size: 12px; cursor: pointer;
+    }
+
+    /* 복사 성공 알림 */
+    #copyToast {
+      position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
+      background: #4caf78; color: white; padding: 10px 20px;
+      border-radius: 8px; font-weight: 700; font-size: 13px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+      opacity: 0; transition: opacity 0.3s; pointer-events: none;
+      z-index: 99999;
+    }
+    #copyToast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+
+<!-- 보증서 템플릿 -->
+<div id="warrantyTemplate">
+  <img class="wt-bg" src="warranty_letter.jpg" alt="보증서">
+
+  <!-- 고객 정보 -->
+  <span class="wf" id="p_customer_name"    style="top:23.1%; left:18%;"></span>
+  <span class="wf" id="p_customer_phone"   style="top:23.1%; left:59.5%;"></span>
+  <span class="wf" id="p_customer_car"     style="top:26.7%; left:18%;"></span>
+  <span class="wf" id="p_customer_address" style="top:26.8%; left:59.5%;"></span>
+  <span class="wf" id="p_car_number"       style="top:30.4%; left:18%;"></span>
+  <span class="wf" id="p_car_vin"          style="top:30.5%; left:59.5%;"></span>
+
+  <!-- 서비스 내용 -->
+  <span class="wf" id="p_service_date"     style="top:39.4%; left:18%;"></span>
+  <span class="wf" id="p_warranty_number"  style="top:39.4%; left:59.5%;"></span>
+  <span class="wf wf-right" id="p_service_price" style="top:39.4%; left:90.9%;"></span>
+
+  <!-- 제품명 -->
+  <span class="wf wf-sm wf-center" id="pp_front_product"      style="top:46.6%; left:19.1%; width:11.5%;"></span>
+  <span class="wf wf-sm wf-center" id="pp_side1_product"      style="top:46.6%; left:29.4%; width:11.5%;"></span>
+  <span class="wf wf-sm wf-center" id="pp_side2_product"      style="top:46.6%; left:39.5%; width:11.5%;"></span>
+  <span class="wf wf-sm wf-center" id="pp_side3_product"      style="top:46.6%; left:49.9%; width:11.5%;"></span>
+  <span class="wf wf-sm wf-center" id="pp_rear_product"       style="top:46.6%; left:59.9%; width:11.5%;"></span>
+  <span class="wf wf-sm wf-center" id="pp_glass_roof_product" style="top:46.6%; left:70.3%; width:11.5%;"></span>
+  <span class="wf wf-sm wf-center" id="pp_panorama_product"   style="top:46.6%; left:80.3%; width:11.5%;"></span>
+
+  <!-- 제품사양 -->
+  <span class="wf wf-sm wf-center" id="pp_front_spec"         style="top:50.0%; left:19.1%; width:11.5%;"></span>
+  <span class="wf wf-sm wf-center" id="pp_side1_spec"         style="top:50.0%; left:29.4%; width:11.5%;"></span>
+  <span class="wf wf-sm wf-center" id="pp_side2_spec"         style="top:50.0%; left:39.5%; width:11.5%;"></span>
+  <span class="wf wf-sm wf-center" id="pp_side3_spec"         style="top:50.0%; left:49.9%; width:11.5%;"></span>
+  <span class="wf wf-sm wf-center" id="pp_rear_spec"          style="top:50.0%; left:59.9%; width:11.5%;"></span>
+  <span class="wf wf-sm wf-center" id="pp_glass_roof_spec"    style="top:50.0%; left:70.3%; width:11.5%;"></span>
+  <span class="wf wf-sm wf-center" id="pp_panorama_spec"      style="top:50.0%; left:80.3%; width:11.5%;"></span>
+
+  <!-- 시공업체 -->
+  <span class="wf" id="p_shop_name"        style="top:76.5%; left:18%;"></span>
+  <span class="wf" id="p_shop_address"     style="top:78.7%; left:52.1%;"></span>
+  <span class="wf" id="p_shop_phone"       style="top:80.1%; left:18%;"></span>
+  <span class="wf" id="p_installer_name"   style="top:83.8%; left:18%;"></span>
+</div>
+
+<!-- 플로팅 콘솔 -->
+<div id="posConsole">
+  <div id="consoleHeader">
+    <div class="console-title">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4caf78" stroke-width="2.5"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M9 9h6M9 12h6M9 15h4"/></svg>
+      위치 조절 콘솔
+    </div>
+    <button class="toggle-btn" id="toggleBtn" onclick="toggleBody()">▲</button>
+  </div>
+
+  <div id="consoleBody">
+    <div id="fieldList"></div>
+  </div>
+
+  <div class="console-footer">
+    <button class="con-btn con-btn-green" onclick="copyCode()" style="flex:1.2;">📋 코드 복사</button>
+    <button class="con-btn" onclick="saveCurrentAsDefault()" style="flex:1.4; background:rgba(91,157,249,0.15); color:#5b9df9;">💾 기본값 저장</button>
+    <button class="con-btn con-btn-ghost" onclick="resetAll()" style="flex:0.8;">↺ 초기화</button>
+  </div>
+</div>
+
+<div id="copyToast"></div>
+
+<script>
+// ────────────────────────────────────────────
+// 1. 필드 정의
+// ────────────────────────────────────────────
+const SECTIONS = [
+  { key:'cust', label:'고객정보', color:'#5b9df9', fields:[
+    { id:'p_customer_name',    name:'고객성명',   top:23.1, left:18.0 },
+    { id:'p_customer_phone',   name:'연락처',     top:23.1, left:59.5 },
+    { id:'p_customer_car',     name:'고객차종',   top:26.7, left:18.0 },
+    { id:'p_customer_address', name:'고객주소',   top:26.8, left:59.5 },
+    { id:'p_car_number',       name:'차량번호',   top:30.4, left:18.0 },
+    { id:'p_car_vin',          name:'차대번호',   top:30.5, left:59.5 },
+  ]},
+  { key:'svc', label:'서비스내용', color:'#c77dff', fields:[
+    { id:'p_service_date',    name:'시공일자',  top:39.4, left:18.0 },
+    { id:'p_warranty_number', name:'보증번호',  top:39.4, left:59.5 },
+    { id:'p_service_price',   name:'가격',      top:39.4, left:90.9 },
+  ]},
+  { key:'prod', label:'제품명 (7열)', color:'#4caf78', fields:[
+    { id:'pp_front_product',      name:'전면',       top:46.6, left:19.1 },
+    { id:'pp_side1_product',      name:'측면 1열',   top:46.6, left:29.4 },
+    { id:'pp_side2_product',      name:'측면 2열',   top:46.6, left:39.5 },
+    { id:'pp_side3_product',      name:'측면 3열',   top:46.6, left:49.9 },
+    { id:'pp_rear_product',       name:'후면',       top:46.6, left:59.9 },
+    { id:'pp_glass_roof_product', name:'글래스루프', top:46.6, left:70.3 },
+    { id:'pp_panorama_product',   name:'파노라마',   top:46.6, left:80.3 },
+  ]},
+  { key:'spec', label:'제품사양 (7열)', color:'#ffb347', fields:[
+    { id:'pp_front_spec',      name:'전면',       top:50.0, left:19.1 },
+    { id:'pp_side1_spec',      name:'측면 1열',   top:50.0, left:29.4 },
+    { id:'pp_side2_spec',      name:'측면 2열',   top:50.0, left:39.5 },
+    { id:'pp_side3_spec',      name:'측면 3열',   top:50.0, left:49.9 },
+    { id:'pp_rear_spec',       name:'후면',       top:50.0, left:59.9 },
+    { id:'pp_glass_roof_spec', name:'글래스루프', top:50.0, left:70.3 },
+    { id:'pp_panorama_spec',   name:'파노라마',   top:50.0, left:80.3 },
+  ]},
+  { key:'shop', label:'시공업체', color:'#ff7675', fields:[
+    { id:'p_shop_name',      name:'시공점명', top:76.5, left:18.0 },
+    { id:'p_shop_address',   name:'주소',     top:78.7, left:52.1 },
+    { id:'p_shop_phone',     name:'연락처',   top:80.1, left:18.0 },
+    { id:'p_installer_name', name:'시공자',   top:83.8, left:18.0 },
+  ]},
+];
+
+// 테스트 데이터
+const TEST = {
+  p_customer_name:'홍길동', p_customer_phone:'010-1234-5678',
+  p_customer_car:'Tesla Model 3', p_customer_address:'서울시 강남구',
+  p_car_number:'12가 3456', p_car_vin:'KMHXX0000000',
+  p_service_date:'2026-03-25', p_warranty_number:'TS-20260325-001', p_service_price:'₩ 2,000,000',
+  pp_front_product:'VEGA', pp_side1_product:'VEGA',
+  pp_side2_product:'VEGA', pp_side3_product:'VEGA',
+  pp_rear_product:'VEGA', pp_glass_roof_product:'VEGA', pp_panorama_product:'VEGA',
+  pp_front_spec:'15%', pp_side1_spec:'35%',
+  pp_side2_spec:'20%', pp_side3_spec:'50%',
+  pp_rear_spec:'5%', pp_glass_roof_spec:'70%', pp_panorama_spec:'IR20',
+  p_shop_name:'더스미스 강남점', p_shop_address:'서울시 강남구 역삼동',
+  p_shop_phone:'02-1234-5678', p_installer_name:'김시공',
+};
+
+// ────────────────────────────────────────────
+// 2. localStorage 기본값 저장/불러오기
+// ────────────────────────────────────────────
+const LS_KEY = 'warranty_pos_defaults';
+
+function loadSavedDefaults() {
+  try {
+    const saved = localStorage.getItem(LS_KEY);
+    if (!saved) return null;
+    return JSON.parse(saved);
+  } catch(e) { return null; }
+}
+
+function saveCurrentAsDefault() {
+  const data = {};
+  SECTIONS.forEach(sec => sec.fields.forEach(f => {
+    data[f.id] = getPos(f.id);
+  }));
+  localStorage.setItem(LS_KEY, JSON.stringify(data));
+  // 피드백 표시
+  showToast('💾 현재 위치가 기본값으로 저장되었습니다!', '#5b9df9');
+}
+
+function applyDefaultsToSpans(defaults) {
+  if (!defaults) return;
+  SECTIONS.forEach(sec => sec.fields.forEach(f => {
+    const d = defaults[f.id];
+    if (!d) return;
+    const span = document.getElementById(f.id);
+    if (span) { span.style.top = d.top + '%'; span.style.left = d.left + '%'; }
+  }));
+}
+
+// ────────────────────────────────────────────
+// 3. 현재 위치 읽어오기 (span에서)
+// ────────────────────────────────────────────
+function getPos(id) {
+  const el = document.getElementById(id);
+  if (!el) return { top:0, left:0 };
+  return {
+    top:  parseFloat(el.style.top)  || 0,
+    left: parseFloat(el.style.left) || 0,
+  };
+}
+
+// ────────────────────────────────────────────
+// 4. 콘솔 UI 빌드
+// ────────────────────────────────────────────
+function buildUI() {
+  const list = document.getElementById('fieldList');
+  let html = '';
+  SECTIONS.forEach(sec => {
+    html += `<div class="sec-head" style="color:${sec.color}">${sec.label}</div>`;
+    sec.fields.forEach(f => {
+      const p = getPos(f.id);
+      html += `
+        <div class="field-row" id="row_${f.id}" onclick="selectField('${f.id}')">
+          <div class="field-label">
+            <b>${f.name}</b>
+            <span id="badge_${f.id}">${p.top.toFixed(1)}% / ${p.left.toFixed(1)}%</span>
+          </div>
+          <div class="slider-row">
+            <span class="slider-key">top</span>
+            <input type="range" id="rt_${f.id}" min="0" max="100" step="0.1" value="${p.top}"
+              style="background:linear-gradient(to right,${sec.color} 0%,${sec.color} ${p.top}%,#2d3748 ${p.top}%)"
+              oninput="onSlide('${f.id}','top',this.value,'${sec.color}')">
+            <input type="number" id="nt_${f.id}" min="0" max="100" step="0.1" value="${p.top.toFixed(1)}"
+              oninput="onNum('${f.id}','top',this.value,'${sec.color}')">
+          </div>
+          <div class="slider-row">
+            <span class="slider-key">left</span>
+            <input type="range" id="rl_${f.id}" min="0" max="100" step="0.1" value="${p.left}"
+              style="background:linear-gradient(to right,${sec.color} 0%,${sec.color} ${p.left}%,#2d3748 ${p.left}%)"
+              oninput="onSlide('${f.id}','left',this.value,'${sec.color}')">
+            <input type="number" id="nl_${f.id}" min="0" max="100" step="0.1" value="${p.left.toFixed(1)}"
+              oninput="onNum('${f.id}','left',this.value,'${sec.color}')">
+          </div>
+        </div>`;
+    });
+  });
+  list.innerHTML = html;
+}
+
+// ────────────────────────────────────────────
+// 4. 슬라이더/숫자 변경 핸들러
+// ────────────────────────────────────────────
+function autoSave() {
+  const data = {};
+  SECTIONS.forEach(sec => sec.fields.forEach(f => { data[f.id] = getPos(f.id); }));
+  try { localStorage.setItem(LS_KEY, JSON.stringify(data)); } catch(e) {}
+}
+
+function applyPos(id, prop, val, color) {
+  const v = parseFloat(val);
+  if (isNaN(v)) return;
+  const span = document.getElementById(id);
+  if (span) span.style[prop] = v + '%';
+  autoSave();
+
+  // 배지 업데이트
+  const p = getPos(id);
+  const badge = document.getElementById(`badge_${id}`);
+  if (badge) badge.textContent = `${p.top.toFixed(1)}% / ${p.left.toFixed(1)}%`;
+
+  // 슬라이더 그라데이션 업데이트
+  const slider = document.getElementById(prop === 'top' ? `rt_${id}` : `rl_${id}`);
+  if (slider && document.activeElement !== slider) {
+    slider.value = v;
+    slider.style.background = `linear-gradient(to right,${color} 0%,${color} ${v}%,#2d3748 ${v}%)`;
+  }
+  // 숫자 입력 동기화
+  const numEl = document.getElementById(prop === 'top' ? `nt_${id}` : `nl_${id}`);
+  if (numEl && document.activeElement !== numEl) numEl.value = v.toFixed(1);
+}
+
+function onSlide(id, prop, val, color) {
+  applyPos(id, prop, val, color);
+  // 숫자 입력 업데이트
+  const numEl = document.getElementById(prop === 'top' ? `nt_${id}` : `nl_${id}`);
+  if (numEl) numEl.value = parseFloat(val).toFixed(1);
+}
+
+function onNum(id, prop, val, color) {
+  applyPos(id, prop, val, color);
+  // 슬라이더 업데이트
+  const slider = document.getElementById(prop === 'top' ? `rt_${id}` : `rl_${id}`);
+  if (slider) {
+    slider.value = val;
+    slider.style.background = `linear-gradient(to right,${color} 0%,${color} ${val}%,#2d3748 ${val}%)`;
+  }
+}
+
+// ────────────────────────────────────────────
+// 5. 필드 선택 (하이라이트)
+// ────────────────────────────────────────────
+let selectedId = null;
+function selectField(id) {
+  // 이전 선택 해제
+  if (selectedId) {
+    const prev = document.getElementById(selectedId);
+    if (prev) prev.classList.remove('selected');
+    const prevRow = document.getElementById(`row_${selectedId}`);
+    if (prevRow) prevRow.classList.remove('active');
+  }
+  // 새 선택
+  selectedId = id;
+  const el = document.getElementById(id);
+  if (el) {
+    el.classList.add('selected');
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+  const row = document.getElementById(`row_${id}`);
+  if (row) row.classList.add('active');
+}
+
+// 보증서 span 클릭 → 콘솔에서 해당 필드 스크롤
+document.querySelectorAll('.wf').forEach(span => {
+  span.addEventListener('click', () => {
+    const id = span.id;
+    selectField(id);
+    // 콘솔에서 해당 행으로 스크롤
+    const row = document.getElementById(`row_${id}`);
+    if (row) row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  });
+});
+
+// ────────────────────────────────────────────
+// 7. 초기화 (저장된 기본값 또는 HTML 원본값으로)
+// ────────────────────────────────────────────
+const INITIAL_POS = {};  // HTML에 하드코딩된 원본값 (최초 1회 저장)
+
+function saveInitial() {
+  SECTIONS.forEach(sec => sec.fields.forEach(f => {
+    INITIAL_POS[f.id] = getPos(f.id);
+  }));
+}
+
+function resetAll() {
+  // SECTIONS 하드코딩 기본값으로 초기화 (localStorage 무시)
+  SECTIONS.forEach(sec => sec.fields.forEach(f => {
+    const init = { top: f.top, left: f.left };
+    if (init.top === undefined) return;
+    const span = document.getElementById(f.id);
+    if (span) { span.style.top = init.top + '%'; span.style.left = init.left + '%'; }
+    const rt = document.getElementById(`rt_${f.id}`);
+    const rl = document.getElementById(`rl_${f.id}`);
+    const nt = document.getElementById(`nt_${f.id}`);
+    const nl = document.getElementById(`nl_${f.id}`);
+    if (rt) { rt.value = init.top; rt.style.background = `linear-gradient(to right,${sec.color} 0%,${sec.color} ${init.top}%,#2d3748 ${init.top}%)`; }
+    if (rl) { rl.value = init.left; rl.style.background = `linear-gradient(to right,${sec.color} 0%,${sec.color} ${init.left}%,#2d3748 ${init.left}%)`; }
+    if (nt) nt.value = init.top.toFixed(1);
+    if (nl) nl.value = init.left.toFixed(1);
+    const badge = document.getElementById(`badge_${f.id}`);
+    if (badge) badge.textContent = `${init.top.toFixed(1)}% / ${init.left.toFixed(1)}%`;
+  }));
+  showToast('↺ 기본값으로 초기화되었습니다', '#ffb347');
+}
+
+// ────────────────────────────────────────────
+// 7. 코드 복사
+// ────────────────────────────────────────────
+function copyCode() {
+  // register.html에 붙여넣을 수 있는 완전한 span 코드 생성
+  const lines = [];
+  lines.push('<!-- ▼▼▼ 고객 정보 ▼▼▼ -->');
+  const cust = SECTIONS[0].fields;
+  cust.forEach(f => {
+    const p = getPos(f.id);
+    lines.push(`<span class="wf" id="${f.id}" style="top:${p.top.toFixed(1)}%; left:${p.left.toFixed(1)}%;"></span>`);
+  });
+  lines.push('');
+  lines.push('<!-- ▼▼▼ 서비스 내용 ▼▼▼ -->');
+  SECTIONS[1].fields.forEach(f => {
+    const p = getPos(f.id);
+    lines.push(`<span class="wf" id="${f.id}" style="top:${p.top.toFixed(1)}%; left:${p.left.toFixed(1)}%;"></span>`);
+  });
+  lines.push('');
+  lines.push('<!-- ▼▼▼ 시공위치 - 제품명 ▼▼▼ -->');
+  SECTIONS[2].fields.forEach(f => {
+    const p = getPos(f.id);
+    lines.push(`<span class="wf wf-sm wf-center" id="${f.id}" style="top:${p.top.toFixed(1)}%; left:${p.left.toFixed(1)}%; width:11.5%;"></span>`);
+  });
+  lines.push('');
+  lines.push('<!-- ▼▼▼ 시공위치 - 제품사양 ▼▼▼ -->');
+  SECTIONS[3].fields.forEach(f => {
+    const p = getPos(f.id);
+    lines.push(`<span class="wf wf-sm wf-center" id="${f.id}" style="top:${p.top.toFixed(1)}%; left:${p.left.toFixed(1)}%; width:11.5%;"></span>`);
+  });
+  lines.push('');
+  lines.push('<!-- ▼▼▼ 시공업체 정보 ▼▼▼ -->');
+  SECTIONS[4].fields.forEach(f => {
+    const p = getPos(f.id);
+    lines.push(`<span class="wf" id="${f.id}" style="top:${p.top.toFixed(1)}%; left:${p.left.toFixed(1)}%;"></span>`);
+  });
+
+  navigator.clipboard.writeText(lines.join('\n')).then(() => {
+    showToast('✓ 클립보드에 복사됐습니다!', '#4caf78');
+  });
+}
+
+// ────────────────────────────────────────────
+// 8. 콘솔 접기/펼치기
+// ────────────────────────────────────────────
+let bodyOpen = true;
+function toggleBody() {
+  bodyOpen = !bodyOpen;
+  const body = document.getElementById('consoleBody');
+  const footer = document.querySelector('.console-footer');
+  const btn = document.getElementById('toggleBtn');
+  body.style.display   = bodyOpen ? 'block' : 'none';
+  footer.style.display = bodyOpen ? 'flex'  : 'none';
+  btn.textContent = bodyOpen ? '▲' : '▼';
+}
+
+// ────────────────────────────────────────────
+// 9. 드래그 이동
+// ────────────────────────────────────────────
+(function() {
+  const panel = document.getElementById('posConsole');
+  const header = document.getElementById('consoleHeader');
+  let drag = false, sx, sy, ox, oy;
+  header.addEventListener('mousedown', e => {
+    if (e.target.tagName === 'BUTTON') return;
+    drag = true;
+    const r = panel.getBoundingClientRect();
+    sx = e.clientX; sy = e.clientY; ox = r.left; oy = r.top;
+    e.preventDefault();
+  });
+  document.addEventListener('mousemove', e => {
+    if (!drag) return;
+    panel.style.left  = (ox + e.clientX - sx) + 'px';
+    panel.style.top   = (oy + e.clientY - sy) + 'px';
+    panel.style.right = 'auto';
+  });
+  document.addEventListener('mouseup', () => { drag = false; });
+})();
+
+// ────────────────────────────────────────────
+// 10. 토스트 알림
+// ────────────────────────────────────────────
+let toastTimer = null;
+function showToast(msg, color = '#4caf78') {
+  const toast = document.getElementById('copyToast');
+  toast.textContent = msg;
+  toast.style.background = color;
+  toast.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toast.classList.remove('show'), 2400);
+}
+
+// ────────────────────────────────────────────
+// 11. 초기 실행
+// ────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', () => {
+  // 1) SECTIONS 하드코딩 기본값 먼저 적용
+  SECTIONS.forEach(sec => sec.fields.forEach(f => {
+    const span = document.getElementById(f.id);
+    if (span) { span.style.top = f.top + '%'; span.style.left = f.left + '%'; }
+  }));
+
+  // 2) localStorage에 저장된 값이 있으면 덮어씌움 (마지막 세션 복원)
+  const saved = loadSavedDefaults();
+  if (saved) applyDefaultsToSpans(saved);
+
+  saveInitial();
+  buildUI();
+
+  // 3) 테스트 데이터 삽입
+  Object.entries(TEST).forEach(([id, val]) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = val;
+  });
+
+  if (saved) setTimeout(() => showToast('↩ 이전 세션 위치를 복원했습니다', '#5b9df9'), 300);
+});
+</script>
+</body>
+</html>
