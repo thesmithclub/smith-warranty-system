@@ -274,7 +274,9 @@
       <div class="form-group">
         <input type="tel" id="inputPhone" class="form-control"
           placeholder="010-0000-0000"
-          onkeydown="if(event.key==='Enter') searchByPhone()">
+          oninput="autoFormatPhone(this)"
+          onkeydown="if(event.key==='Enter') searchByPhone()"
+          maxlength="13">
       </div>
       <button class="btn btn-primary btn-full" onclick="searchByPhone()">조회</button>
       <div class="search-hint">💡 등록된 휴대전화번호로 모든 보증서를 조회합니다</div>
@@ -406,10 +408,20 @@ async function search() {
   setTimeout(initViewerScale, 100);
 }
 
+// 전화번호 자동 하이픈
+function autoFormatPhone(el) {
+  let v = el.value.replace(/\D/g, '');
+  if (v.length > 11) v = v.slice(0, 11);
+  if (v.length <= 3) el.value = v;
+  else if (v.length <= 7) el.value = v.slice(0,3) + '-' + v.slice(3);
+  else el.value = v.slice(0,3) + '-' + v.slice(3,7) + '-' + v.slice(7);
+}
+
 // 전화번호로 조회
 async function searchByPhone() {
-  const phone = document.getElementById('inputPhone').value.trim();
-  if (!phone) { alert('휴대전화번호를 입력해 주세요.'); return; }
+  const rawPhone = document.getElementById('inputPhone').value.trim();
+  if (!rawPhone) { alert('휴대전화번호를 입력해 주세요.'); return; }
+  const phone = rawPhone.replace(/-/g, ''); // 하이픈 제거 후 비교
 
   showState('loading');
 

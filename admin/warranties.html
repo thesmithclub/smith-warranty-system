@@ -34,7 +34,7 @@
     .dealer-option:hover, .dealer-option.active { background: var(--surface-2); }
     .dealer-option.all { color: var(--text-2); font-style: italic; }
 
-    .wt-table-wrap { overflow-x: auto; }
+    .wt-table-wrap { overflow-x: auto; scrollbar-gutter: stable; }
     .wt-table {
       width: 100%; border-collapse: collapse; font-size: 13px;
     }
@@ -43,6 +43,10 @@
       font-size: 11px; font-weight: 600; color: var(--text-2);
       border-bottom: 2px solid var(--border); white-space: nowrap;
     }
+    .wt-table th.col-num { width: 140px; }
+    .wt-table th.col-badge { width: 72px; }
+    .wt-table th.col-date { width: 90px; }
+    .wt-table th.col-act  { width: 1%; white-space: nowrap; }
     .wt-table td {
       padding: 11px 12px; border-bottom: 1px solid var(--border);
       vertical-align: middle; color: var(--text-1);
@@ -189,14 +193,14 @@
       <table class="wt-table">
         <thead>
           <tr>
-            <th>발송</th>
-            <th>보증번호</th>
+            <th class="col-badge">발송</th>
+            <th class="col-num">보증번호</th>
             <th>고객명</th>
             <th>차종</th>
             <th>차량번호</th>
-            <th>시공일자</th>
+            <th class="col-date">시공일자</th>
             <th>대리점</th>
-            <th>작업</th>
+            <th class="col-act">작업</th>
           </tr>
         </thead>
         <tbody id="warrantyTbody"></tbody>
