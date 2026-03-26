@@ -43,10 +43,15 @@
       font-size: 11px; font-weight: 600; color: var(--text-2);
       border-bottom: 2px solid var(--border); white-space: nowrap;
     }
-    .wt-table th.col-num { width: 140px; }
-    .wt-table th.col-badge { width: 72px; }
-    .wt-table th.col-date { width: 90px; }
-    .wt-table th.col-act  { width: 1%; white-space: nowrap; }
+    .wt-table th.col-badge  { width: 76px; }
+    .wt-table th.col-num    { width: 148px; }
+    .wt-table th.col-name   { width: 80px; }
+    .wt-table th.col-car    { width: 90px; }
+    .wt-table th.col-carnum { width: 100px; }
+    .wt-table th.col-date   { width: 96px; }
+    .wt-table th.col-dealer { width: 100px; }
+    .wt-table th.col-act    { width: 1%; white-space: nowrap; }
+    .wt-table td { white-space: nowrap; }
     .wt-table td {
       padding: 11px 12px; border-bottom: 1px solid var(--border);
       vertical-align: middle; color: var(--text-1);
@@ -195,11 +200,11 @@
           <tr>
             <th class="col-badge">발송</th>
             <th class="col-num">보증번호</th>
-            <th>고객명</th>
-            <th>차종</th>
-            <th>차량번호</th>
+            <th class="col-name">고객명</th>
+            <th class="col-car">차종</th>
+            <th class="col-carnum">차량번호</th>
             <th class="col-date">시공일자</th>
-            <th>대리점</th>
+            <th class="col-dealer">대리점</th>
             <th class="col-act">작업</th>
           </tr>
         </thead>
