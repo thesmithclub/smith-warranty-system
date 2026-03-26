@@ -624,6 +624,7 @@ function openPanel(dealerId) {
             ${isActive ? '' : 'disabled style="cursor:default;"'}>비활성</button>
         </div>
         <button class="btn btn-outline btn-sm" onclick="openEditModal('${d.id}')">수정</button>
+        <button class="btn btn-sm" onclick="deleteDealer('${d.id}')" style="background:#fee2e2;color:#b91c1c;border:1px solid #fca5a5;">삭제</button>
       </div>
     </div>
     <div class="info-grid">
@@ -668,6 +669,20 @@ function openPanel(dealerId) {
 function closePanel() {
   document.getElementById('detailOverlay').classList.remove('open');
   document.getElementById('detailPanel').classList.remove('open');
+}
+
+// ── 대리점 삭제 (관리자 전용) ──
+function deleteDealer(dealerId) {
+  const users = getUsers();
+  const d = users.find(u => u.id === dealerId);
+  if (!d) return;
+  if (!confirm(`대리점 [${d.dealer_name}]을 삭제합니다.\n해당 대리점의 로그인 계정이 비활성화되며 이 작업은 되돌릴 수 없습니다.`)) return;
+
+  const updated = users.filter(u => u.id !== dealerId);
+  saveUsers(updated);
+  closePanel();
+  showToast(`${d.dealer_name}이(가) 삭제되었습니다.`, 'success');
+  loadDealers();
 }
 
 // ── 재고 관리 ──
