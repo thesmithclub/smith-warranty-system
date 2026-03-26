@@ -30,10 +30,9 @@
     #warrantyImgModal {
       display: none; position: fixed; inset: 0; z-index: 9999;
       background: rgba(0,0,0,0.88);
-      align-items: flex-start; justify-content: center;
-      overflow-y: auto; padding: 40px 20px;
+      overflow-y: auto;
     }
-    #warrantyImgModal.open { display: flex; }
+    #warrantyImgModal.open { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px 20px; min-height: 100%; }
     #warrantyImgContainer {
       position: relative; width: 794px; height: 1123px;
       overflow: hidden; background: white; flex-shrink: 0;

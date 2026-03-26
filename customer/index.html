@@ -289,6 +289,7 @@
     <div class="result-header">
       <div class="result-title" id="resultTitle"></div>
       <div class="download-btns">
+        <button class="btn btn-outline" onclick="showWarrantyImage()">🖼 이미지 보기</button>
         <button class="btn btn-primary" onclick="downloadImage()">⬇ 이미지 저장</button>
       </div>
     </div>
@@ -443,20 +444,25 @@ function showState(state) {
 
 // 복수 목록 렌더링
 function renderWarrantyList(warranties) {
+  // 개별 클릭을 위해 전역 저장
+  window._warrantyList = warranties;
   document.getElementById('warrantyList').innerHTML = warranties.map(w => `
-    <div style="background:white; border-radius:12px; padding:20px; margin-bottom:12px; box-shadow:0 2px 8px rgba(0,0,0,0.08); display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
+    <div onclick="viewWarrantyImage('${w.id}')" style="background:white; border-radius:12px; padding:20px; margin-bottom:12px; box-shadow:0 2px 8px rgba(0,0,0,0.08); display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; cursor:pointer; transition:box-shadow 0.2s;" onmouseover="this.style.boxShadow='0 4px 16px rgba(45,106,79,0.18)'" onmouseout="this.style.boxShadow='0 2px 8px rgba(0,0,0,0.08)'">
       <div>
         <div style="font-weight:700; color:var(--smith-green-dark); margin-bottom:4px;">${w.customer_car} — ${w.car_number}</div>
         <div style="font-size:13px; color:#666;">${w.service_date} · ${w.shop_name} · <code>${w.warranty_number}</code></div>
         <div style="font-size:12px; color:#999; margin-top:2px;">${Number(w.service_price).toLocaleString()}원</div>
       </div>
-      <button class="btn btn-primary btn-sm" onclick="selectWarranty('${w.id}', ${JSON.stringify(warranties).replace(/'/g,"\\'")} )">
-        보증서 보기
-      </button>
+      <span style="font-size:12px; color:var(--smith-green-dark); font-weight:600;">🖼 보증서 보기 ›</span>
     </div>
   `).join('');
-  // 개별 클릭을 위해 전역 저장
-  window._warrantyList = warranties;
+}
+
+function viewWarrantyImage(id) {
+  const w = window._warrantyList.find(x => x.id === id);
+  if (!w) return;
+  currentWarranty = w;
+  showWarrantyImage();
 }
 
 function selectWarranty(id) {

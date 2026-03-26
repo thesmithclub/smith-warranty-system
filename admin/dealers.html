@@ -338,7 +338,7 @@
   <!-- 검색/필터/정렬 -->
   <div class="search-row">
     <input type="text" id="searchInput" class="form-control"
-      placeholder="대리점명, 연락처, 주소 검색..."
+      placeholder="대리점명, ID, 연락처, 주소 검색..."
       oninput="renderDealers()">
     <select id="sortSelect" class="sort-select" onchange="renderDealers()">
       <option value="name">이름순</option>
@@ -638,6 +638,10 @@ function openPanel(dealerId) {
       <div class="info-item" style="grid-column:1/-1;">
         <div class="info-item-label">주소</div>
         <div class="info-item-value">${d.dealer_address || '-'}</div>
+      </div>
+      <div class="info-item">
+        <div class="info-item-label">로그인 ID</div>
+        <div class="info-item-value"><code style="font-size:13px; background:var(--surface-2); padding:2px 8px; border-radius:4px;">${d.email || '-'}</code></div>
       </div>
       <div class="info-item">
         <div class="info-item-label">등록일</div>
