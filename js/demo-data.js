@@ -26,12 +26,23 @@ const SEED_DATA = {
   users: [
     {
       id: 'admin-001',
-      email: 'admin@thesmith.com',
-      password: 'admin1234',
+      email: 'admin',
+      password: '1234',
       role: 'admin',
       dealer_name: '더 스미스 본사',
       dealer_phone: '02-1234-5678',
       dealer_address: '서울특별시 강남구 테헤란로 123',
+    },
+    {
+      id: 'dealer-a085',
+      email: 'a085',
+      password: '1234',
+      role: 'dealer',
+      dealer_name: 'A085 대리점',
+      dealer_phone: '',
+      dealer_address: '',
+      joined_at: '2026-03-26',
+      active: true,
     },
     {
       id: 'dealer-001',
@@ -222,7 +233,7 @@ const SEED_DATA = {
 };
 
 // ── localStorage 초기화 (버전 기반 — 구조 변경 시 자동 리셋) ──
-const DEMO_VERSION = 'v6'; // 구조 바뀔 때 올려주세요
+const DEMO_VERSION = 'v7'; // 구조 바뀔 때 올려주세요
 
 function initDemoData() {
   if (localStorage.getItem('demo_version') !== DEMO_VERSION) {
@@ -342,7 +353,7 @@ const supabaseClient = {
       initDemoData();
       const users = getUsers();
       const user = users.find(u => u.email === email && u.password === password);
-      if (!user) return { data: {}, error: { message: '이메일 또는 비밀번호가 올바르지 않습니다.' } };
+      if (!user) return { data: {}, error: { message: '아이디 또는 비밀번호가 올바르지 않습니다.' } };
       if (user.role === 'dealer' && user.active === false) {
         return { data: {}, error: { message: '비활성화된 대리점 계정입니다. 관리자에게 문의하세요.' } };
       }

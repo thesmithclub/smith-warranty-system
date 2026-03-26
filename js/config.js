@@ -12,6 +12,16 @@ if (SUPABASE_URL !== 'YOUR_SUPABASE_URL') {
 }
 
 // ============================================
+// GitHub 동기화 설정 (testing/ 폴더 데이터 저장용)
+// ============================================
+const GITHUB_SYNC_CONFIG = {
+  token: 'YOUR_GITHUB_TOKEN',   // GitHub Personal Access Token (repo 쓰기 권한 필요)
+  owner: 'thesmithclub',
+  repo: 'smith-warranty-system',
+  branch: 'main',
+};
+
+// ============================================
 // 솔라피 설정 (나중에 입력)
 // ============================================
 const SOLAPI_CONFIG = {

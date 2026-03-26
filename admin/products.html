@@ -319,6 +319,7 @@
 
 <script src="../js/demo-data.js"></script>
 <script src="../js/config.js"></script>
+<script src="../js/github-sync.js"></script>
 <script>
 
 // ── 초기화 ──
@@ -516,6 +517,7 @@ function submitNewProduct() {
   saveProducts(products);
   render();
   showToast(`"${name}" 제품이 추가되었습니다.`);
+  if (typeof GitHubSync !== 'undefined') GitHubSync.syncProducts().catch(console.warn);
 }
 
 function cancelAdd() { render(); }

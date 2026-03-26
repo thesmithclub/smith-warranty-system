@@ -64,8 +64,8 @@
 
       <form id="loginForm">
         <div class="form-group">
-          <label class="form-label">이메일</label>
-          <input type="email" id="email" class="form-control" placeholder="example@smith.com" required>
+          <label class="form-label">아이디</label>
+          <input type="text" id="email" class="form-control" placeholder="아이디 입력" required>
         </div>
         <div class="form-group">
           <label class="form-label">비밀번호</label>
@@ -102,7 +102,7 @@
       const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
 
       if (error) {
-        errMsg.textContent = '이메일 또는 비밀번호가 올바르지 않습니다.';
+        errMsg.textContent = '아이디 또는 비밀번호가 올바르지 않습니다.';
         errMsg.style.display = 'block';
         btn.disabled = false;
         btn.textContent = '로그인';
