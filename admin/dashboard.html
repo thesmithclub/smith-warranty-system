@@ -814,11 +814,31 @@ function showWarrantyImage() {
     span.style.top  = pos.top + '%';
     span.style.left = pos.left + '%';
     if (pos.width) span.style.width = pos.width;
-    span.textContent = val;
+    if (key === 'customer_address' && val.length > 21) {
+      span.style.whiteSpace = 'normal';
+      span.style.lineHeight  = '1.45';
+      span.style.width = '32%';
+      span.innerHTML = wrapField(val, 21);
+    } else if (key.endsWith('_product') && val.length > 12) {
+      span.style.whiteSpace = 'normal';
+      span.style.lineHeight  = '1.3';
+      span.innerHTML = wrapField(val, 12);
+    } else {
+      span.textContent = val;
+    }
     container.appendChild(span);
   });
 
   document.getElementById('warrantyImgModal').classList.add('open');
+}
+
+function wrapField(text, maxLen) {
+  if (!text || text.length <= maxLen) return text;
+  const lines = [];
+  let rem = text;
+  while (rem.length > maxLen) { lines.push(rem.slice(0, maxLen)); rem = rem.slice(maxLen); }
+  if (rem) lines.push(rem);
+  return lines.map(l => l.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')).join('<br>');
 }
 
 function closeWarrantyImg() {

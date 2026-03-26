@@ -869,7 +869,7 @@ function updatePreview() {
   set('p_installer_name', v('f_installer_name'));
 
   POSITIONS.forEach(p => {
-    set(`pp_${p.key}_product`, v(`f_${p.key}_product`));
+    setWrapped(`pp_${p.key}_product`, v(`f_${p.key}_product`), 12);
     set(`pp_${p.key}_spec`,    v(`f_${p.key}_spec`));
   });
 }

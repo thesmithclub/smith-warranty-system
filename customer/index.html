@@ -516,14 +516,36 @@ function renderWarrantyDisplay(w) {
     { cls:'wf', id:'wd_installer_name', top:83.8, left:18.0,  val: w.installer_name||'' },
   ];
 
-  const spansHtml = fields.map(f =>
-    `<span class="${f.cls}" style="top:${f.top}%;left:${f.left}%;${f.width?'width:'+f.width+';':''}">${f.val}</span>`
-  ).join('');
+  const spansHtml = fields.map(f => {
+    let extraStyle = f.width ? `width:${f.width};` : '';
+    let content = escHtml(f.val);
+    if (f.id === 'wd_customer_address' && f.val && f.val.length > 21) {
+      extraStyle += 'white-space:normal;line-height:1.45;width:32%;';
+      content = wrapField(f.val, 21);
+    } else if (f.id.endsWith('_product') && f.val && f.val.length > 12) {
+      extraStyle += 'white-space:normal;line-height:1.3;';
+      content = wrapField(f.val, 12);
+    }
+    return `<span class="${f.cls}" style="top:${f.top}%;left:${f.left}%;${extraStyle}">${content}</span>`;
+  }).join('');
 
   container.innerHTML = `
     <img class="wd-bg" src="../warranty_letter.jpg" alt="보증서" crossorigin="anonymous">
     ${spansHtml}
   `;
+}
+
+// ── 텍스트 줄바꿈 헬퍼 ──
+function escHtml(str) {
+  return (str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function wrapField(text, maxLen) {
+  if (!text || text.length <= maxLen) return escHtml(text);
+  const lines = [];
+  let rem = text;
+  while (rem.length > maxLen) { lines.push(rem.slice(0, maxLen)); rem = rem.slice(maxLen); }
+  if (rem) lines.push(rem);
+  return lines.map(escHtml).join('<br>');
 }
 
 // ── 보증서 이미지 팝업 ──
@@ -595,12 +617,16 @@ function showWarrantyImage() {
     if (pos.width) span.style.width = pos.width;
     if (key === 'customer_address' && val.length > 21) {
       span.style.whiteSpace = 'normal';
-      span.style.overflowWrap = 'break-word';
-      span.style.wordBreak = 'keep-all';
+      span.style.lineHeight  = '1.45';
       span.style.width = '32%';
-      span.style.lineHeight = '1.45';
+      span.innerHTML = wrapField(val, 21);
+    } else if (key.endsWith('_product') && val.length > 12) {
+      span.style.whiteSpace = 'normal';
+      span.style.lineHeight  = '1.3';
+      span.innerHTML = wrapField(val, 12);
+    } else {
+      span.textContent = val;
     }
-    span.textContent = val;
     container.appendChild(span);
   });
 
