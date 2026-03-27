@@ -138,8 +138,8 @@
   <nav class="sidebar-nav">
     <a href="dashboard.html" class="nav-item"> 대시보드</a>
     <a href="register.html" class="nav-item active"> 보증서 등록</a>
+    <a href="warranties.html" class="nav-item" id="navWarranties"> 보증서 조회</a>
     <a href="stock.html" class="nav-item" id="navStock"> 내 재고</a>
-    <a href="warranties.html" class="nav-item" id="navWarranties" style="display:none;"> 보증서 조회</a>
     <a href="stats.html" class="nav-item" id="navStats" style="display:none;"> 통계보기</a>
     <a href="dealers.html" class="nav-item" id="navDealers" style="display:none;"> 대리점 관리</a>
     <a href="products.html" class="nav-item" id="navProducts" style="display:none;"> 제품 관리</a>
@@ -728,7 +728,6 @@ async function init() {
 
   if (currentProfile.role === 'admin') {
     document.getElementById('navStock').style.display      = 'none';
-    document.getElementById('navWarranties').style.display = 'flex';
     document.getElementById('navStats').style.display      = 'flex';
     document.getElementById('navDealers').style.display    = 'flex';
     document.getElementById('navProducts').style.display   = 'flex';
@@ -736,7 +735,6 @@ async function init() {
     document.getElementById('navPopup').style.display      = 'flex';
   } else {
     document.getElementById('posConsole').style.display    = 'none';
-    document.getElementById('navWarranties').style.display = 'flex';
     document.getElementById('navPopup').style.display      = 'none';
   }
 
