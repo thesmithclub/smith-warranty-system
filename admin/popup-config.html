@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>팝업 메시지 설정 - THE SMITH</title>
+  <link rel="stylesheet" href="../css/admin-theme.css">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    .popup-list { display: flex; flex-direction: column; gap: 12px; }
+    .popup-card {
+      background: var(--bg); border-radius: 14px; box-shadow: var(--shadow);
+      padding: 16px 20px; display: flex; align-items: center; gap: 14px;
+    }
+    .popup-card-info { flex: 1; min-width: 0; }
+    .popup-card-title { font-size: 15px; font-weight: 700; color: var(--smith-text); }
+    .popup-card-meta  { font-size: 12px; color: var(--text-2); margin-top: 3px; }
+    .popup-card-actions { display: flex; gap: 8px; flex-shrink: 0; }
+
+    /* 활성 토글 */
+    .toggle-wrap { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+    .toggle-label { font-size: 12px; color: var(--text-3); }
+    .toggle {
+      position: relative; width: 40px; height: 22px; cursor: pointer;
+    }
+    .toggle input { display: none; }
+    .toggle-track {
+      position: absolute; inset: 0; border-radius: 11px;
+      background: var(--border); transition: background 0.2s;
+    }
+    .toggle input:checked + .toggle-track { background: var(--smith-green); }
+    .toggle-thumb {
+      position: absolute; top: 3px; left: 3px;
+      width: 16px; height: 16px; border-radius: 50%;
+      background: #fff; transition: left 0.2s;
+      pointer-events: none;
+    }
+    .toggle input:checked ~ .toggle-thumb { left: 21px; }
+
+    /* 빈 상태 */
+    .empty-state {
+      text-align: center; padding: 60px 20px; color: var(--text-3);
+    }
+    .empty-state-icon { font-size: 40px; margin-bottom: 12px; }
+    .empty-state-text { font-size: 14px; }
+
+    /* 모달 */
+    .modal-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,.5); z-index: 200;
+      align-items: center; justify-content: center; padding: 20px;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal-box {
+      background: var(--bg); border-radius: 18px;
+      padding: 28px; width: 100%; max-width: 580px;
+      max-height: 90vh; overflow-y: auto;
+    }
+    .modal-title { font-size: 17px; font-weight: 700; color: var(--smith-text); margin-bottom: 22px; }
+
+    /* 폼 요소 */
+    .field { margin-bottom: 18px; }
+    .field label { display: block; font-size: 12px; font-weight: 600; color: var(--text-2); margin-bottom: 6px; }
+    .field input[type=text], .field input[type=url], .field textarea {
+      width: 100%; box-sizing: border-box;
+      padding: 10px 12px; border-radius: 10px; border: 1.5px solid var(--border);
+      background: var(--surface-2); color: var(--smith-text); font-size: 13px;
+      font-family: inherit; outline: none; transition: border-color 0.15s;
+    }
+    .field input:focus, .field textarea:focus { border-color: var(--smith-green); }
+    .field textarea { min-height: 90px; resize: vertical; }
+
+    .field-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+
+    /* 이미지 미리보기 */
+    #imgPreviewWrap {
+      margin-top: 8px; border-radius: 10px; overflow: hidden;
+      border: 1.5px solid var(--border); display: none;
+    }
+    #imgPreviewWrap img { width: 100%; max-height: 200px; object-fit: cover; display: block; }
+
+    /* 대상 선택 */
+    .target-radio { display: flex; gap: 16px; margin-bottom: 12px; }
+    .target-radio label {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 13px; font-weight: 600; cursor: pointer; color: var(--smith-text);
+    }
+    .target-radio input[type=radio] { accent-color: var(--smith-green); }
+
+    /* 대리점 체크리스트 */
+    #dealerCheckList {
+      display: none; max-height: 180px; overflow-y: auto;
+      border: 1.5px solid var(--border); border-radius: 10px;
+      background: var(--surface-2); padding: 8px;
+    }
+    .dealer-check-item {
+      display: flex; align-items: center; gap: 8px;
+      padding: 6px 8px; border-radius: 8px; cursor: pointer;
+      font-size: 13px; color: var(--smith-text);
+    }
+    .dealer-check-item:hover { background: var(--surface-3, rgba(255,255,255,0.05)); }
+    .dealer-check-item input { accent-color: var(--smith-green); }
+
+    .modal-footer { display: flex; gap: 10px; justify-content: flex-end; margin-top: 22px; }
+
+    /* 배지 */
+    .badge-active   { background: #dcfce7; color: #166534; }
+    .badge-inactive { background: var(--surface-2); color: var(--text-3); }
+    .badge {
+      display: inline-block; padding: 2px 9px; border-radius: 20px;
+      font-size: 11px; font-weight: 700;
+    }
+  </style>
+</head>
+<body>
+<div class="layout">
+  <!-- 사이드바 -->
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-logo">
+        <img src="https://smith.speedgabia.com/logo_data/the_smith_logo.png" alt="THE SMITH" style="height:28px;object-fit:contain;">
+      </div>
+      <div class="brand-sub">WARRANTY SYSTEM</div>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="dashboard.html"     class="nav-item"> 대시보드</a>
+      <a href="register.html"      class="nav-item"> 보증서 등록</a>
+      <a href="warranties.html"    class="nav-item"> 보증서 조회</a>
+      <a href="stats.html"         class="nav-item"> 통계보기</a>
+      <a href="dealers.html"       class="nav-item"> 대리점 관리</a>
+      <a href="products.html"      class="nav-item"> 제품 관리</a>
+      <a href="inventory.html"     class="nav-item"> 재고 현황</a>
+      <a href="popup-config.html"  class="nav-item active"> 팝업 설정</a>
+      <a href="deduction-config.html" class="nav-item" style="display:none;"> 차감설정</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="user-profile">
+        <div>
+          <div class="user-name" id="sidebarName">—</div>
+          <div class="user-role" id="sidebarRole">—</div>
+        </div>
+      </div>
+      <a href="#" onclick="handleLogout()" class="logout-btn">로그아웃</a>
+    </div>
+  </aside>
+
+  <!-- 메인 -->
+  <main class="main-content">
+    <div class="page-header">
+      <h1 class="page-title">팝업 메시지 설정</h1>
+      <button class="btn btn-primary" onclick="openModal()">+ 새 팝업 추가</button>
+    </div>
+
+    <div class="ui-card" style="margin-bottom:24px;">
+      <div class="ui-card-header">
+        <div>
+          <div class="ui-card-title">등록된 팝업 메시지</div>
+          <div class="ui-card-sub">활성화된 팝업은 대상 대리점 로그인 시 플로팅 형태로 표시됩니다.</div>
+        </div>
+      </div>
+      <div id="popupListWrap" style="padding:0 0 8px;">
+        <div class="empty-state">
+          <div class="empty-state-icon">📢</div>
+          <div class="empty-state-text">등록된 팝업 메시지가 없습니다.</div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- 생성/수정 모달 -->
+<div class="modal-overlay" id="popupModal">
+  <div class="modal-box">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:22px;">
+      <div class="modal-title" id="modalTitleText">새 팝업 추가</div>
+      <button onclick="closeModal()" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--text-3);">✕</button>
+    </div>
+
+    <!-- 팝업 제목 -->
+    <div class="field">
+      <label>팝업 제목</label>
+      <input type="text" id="f_title" placeholder="팝업 제목을 입력하세요">
+    </div>
+
+    <!-- 활성화 -->
+    <div class="field">
+      <div class="field-row">
+        <label style="margin:0;">팝업 활성화</label>
+        <label class="toggle">
+          <input type="checkbox" id="f_active" checked>
+          <div class="toggle-track"></div>
+          <div class="toggle-thumb"></div>
+        </label>
+      </div>
+    </div>
+
+    <!-- 대상 선택 -->
+    <div class="field">
+      <label>발송 대상</label>
+      <div class="target-radio">
+        <label><input type="radio" name="targetType" value="all" checked onchange="onTargetChange()"> 모든 대리점</label>
+        <label><input type="radio" name="targetType" value="specific" onchange="onTargetChange()"> 특정 대리점 선택</label>
+      </div>
+      <div id="dealerCheckList"></div>
+    </div>
+
+    <!-- 이미지 URL -->
+    <div class="field">
+      <label>이미지 URL</label>
+      <input type="url" id="f_imageUrl" placeholder="https://example.com/image.jpg" oninput="onImageUrlChange()">
+    </div>
+
+    <!-- 이미지 표시 여부 -->
+    <div class="field">
+      <div class="field-row">
+        <label style="margin:0;">이미지 표시</label>
+        <label class="toggle">
+          <input type="checkbox" id="f_showImage" checked onchange="onImageUrlChange()">
+          <div class="toggle-track"></div>
+          <div class="toggle-thumb"></div>
+        </label>
+      </div>
+      <div id="imgPreviewWrap">
+        <img id="imgPreview" src="" alt="이미지 미리보기">
+      </div>
+    </div>
+
+    <!-- 메시지 내용 -->
+    <div class="field">
+      <label>메시지 내용</label>
+      <textarea id="f_message" placeholder="대리점에 전달할 메시지를 입력하세요&#10;줄바꿈을 사용할 수 있습니다."></textarea>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal()">취소</button>
+      <button class="btn btn-primary" onclick="savePopup()">저장</button>
+    </div>
+  </div>
+</div>
+
+<script src="../js/demo-data.js"></script>
+<script src="../js/config.js"></script>
+<script>
+let editingId = null;
+
+async function init() {
+  const session = await requireAuth('../index.html');
+  if (!session) return;
+  const profile = await getCurrentProfile();
+  if (profile?.role !== 'admin') {
+    alert('관리자만 접근할 수 있습니다.');
+    window.location.href = 'dashboard.html';
+    return;
+  }
+  document.getElementById('sidebarName').textContent = profile.dealer_name;
+  document.getElementById('sidebarRole').textContent = '관리자';
+  renderList();
+}
+
+function renderList() {
+  const popups = getPopups();
+  const wrap = document.getElementById('popupListWrap');
+
+  if (popups.length === 0) {
+    wrap.innerHTML = `<div class="empty-state"><div class="empty-state-icon">📢</div><div class="empty-state-text">등록된 팝업 메시지가 없습니다.</div></div>`;
+    return;
+  }
+
+  wrap.innerHTML = `<div class="popup-list" style="padding:8px 16px 16px;">` +
+    popups.map(p => {
+      const dealers = getUsers().filter(u => u.role === 'dealer');
+      const targetText = p.targetType === 'all'
+        ? '모든 대리점'
+        : `${(p.targetDealers||[]).map(id => dealers.find(d=>d.id===id)?.dealer_name||id).join(', ')} (${(p.targetDealers||[]).length}곳)`;
+      return `
+        <div class="popup-card">
+          <div class="popup-card-info">
+            <div style="display:flex;align-items:center;gap:8px;">
+              <div class="popup-card-title">${esc(p.title || '(제목 없음)')}</div>
+              <span class="badge ${p.active ? 'badge-active' : 'badge-inactive'}">${p.active ? '활성' : '비활성'}</span>
+            </div>
+            <div class="popup-card-meta">대상: ${esc(targetText)} · ${p.imageUrl && p.showImage ? '이미지 포함' : '텍스트만'}</div>
+            <div class="popup-card-meta" style="margin-top:2px;color:var(--text-3);">${esc((p.message||'').slice(0,60))}${(p.message||'').length>60?'…':''}</div>
+          </div>
+          <div class="toggle-wrap">
+            <span class="toggle-label">${p.active ? 'ON' : 'OFF'}</span>
+            <label class="toggle" onclick="toggleActive('${p.id}')">
+              <input type="checkbox" ${p.active ? 'checked' : ''} readonly>
+              <div class="toggle-track"></div>
+              <div class="toggle-thumb"></div>
+            </label>
+          </div>
+          <div class="popup-card-actions">
+            <button class="btn btn-sm btn-outline" onclick="openModal('${p.id}')">수정</button>
+            <button class="btn btn-sm" onclick="deletePopup('${p.id}')" style="background:#fee2e2;color:#b91c1c;border:1px solid #fca5a5;">삭제</button>
+          </div>
+        </div>`;
+    }).join('') + `</div>`;
+}
+
+function esc(str) {
+  return String(str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function toggleActive(id) {
+  const popups = getPopups();
+  const p = popups.find(x => x.id === id);
+  if (!p) return;
+  p.active = !p.active;
+  savePopups(popups);
+  renderList();
+}
+
+function deletePopup(id) {
+  const popups = getPopups();
+  const p = popups.find(x => x.id === id);
+  if (!p) return;
+  if (!confirm(`팝업 [${p.title || '(제목 없음)'}]을 삭제합니다.`)) return;
+  savePopups(popups.filter(x => x.id !== id));
+  renderList();
+}
+
+function openModal(id) {
+  editingId = id || null;
+  document.getElementById('modalTitleText').textContent = id ? '팝업 수정' : '새 팝업 추가';
+
+  // 폼 초기화
+  const dealers = getUsers().filter(u => u.role === 'dealer').sort((a,b) => (a.dealer_name||'').localeCompare(b.dealer_name||''));
+  const listEl = document.getElementById('dealerCheckList');
+  listEl.innerHTML = dealers.map(d =>
+    `<label class="dealer-check-item"><input type="checkbox" value="${d.id}" class="dealer-chk"> ${esc(d.dealer_name)}</label>`
+  ).join('');
+
+  if (id) {
+    const p = getPopups().find(x => x.id === id);
+    if (!p) return;
+    document.getElementById('f_title').value    = p.title || '';
+    document.getElementById('f_active').checked = !!p.active;
+    document.getElementById('f_imageUrl').value  = p.imageUrl || '';
+    document.getElementById('f_showImage').checked = p.showImage !== false;
+    document.getElementById('f_message').value  = p.message || '';
+    // 대상
+    const radios = document.querySelectorAll('input[name=targetType]');
+    radios.forEach(r => { r.checked = r.value === (p.targetType || 'all'); });
+    document.querySelectorAll('.dealer-chk').forEach(cb => {
+      cb.checked = (p.targetDealers || []).includes(cb.value);
+    });
+  } else {
+    document.getElementById('f_title').value    = '';
+    document.getElementById('f_active').checked = true;
+    document.getElementById('f_imageUrl').value  = '';
+    document.getElementById('f_showImage').checked = true;
+    document.getElementById('f_message').value  = '';
+    document.querySelector('input[name=targetType][value=all]').checked = true;
+    document.querySelectorAll('.dealer-chk').forEach(cb => { cb.checked = false; });
+  }
+
+  onTargetChange();
+  onImageUrlChange();
+  document.getElementById('popupModal').classList.add('open');
+}
+
+function closeModal() {
+  document.getElementById('popupModal').classList.remove('open');
+  editingId = null;
+}
+
+function onTargetChange() {
+  const specific = document.querySelector('input[name=targetType]:checked')?.value === 'specific';
+  document.getElementById('dealerCheckList').style.display = specific ? 'block' : 'none';
+}
+
+function onImageUrlChange() {
+  const url     = document.getElementById('f_imageUrl').value.trim();
+  const show    = document.getElementById('f_showImage').checked;
+  const preview = document.getElementById('imgPreviewWrap');
+  const img     = document.getElementById('imgPreview');
+  if (url && show) {
+    img.src = url;
+    preview.style.display = 'block';
+  } else {
+    preview.style.display = 'none';
+  }
+}
+
+function savePopup() {
+  const title   = document.getElementById('f_title').value.trim();
+  const active  = document.getElementById('f_active').checked;
+  const imageUrl= document.getElementById('f_imageUrl').value.trim();
+  const showImg = document.getElementById('f_showImage').checked;
+  const message = document.getElementById('f_message').value.trim();
+  const targetType = document.querySelector('input[name=targetType]:checked')?.value || 'all';
+  const targetDealers = targetType === 'specific'
+    ? [...document.querySelectorAll('.dealer-chk:checked')].map(cb => cb.value)
+    : [];
+
+  if (!title) { alert('팝업 제목을 입력해 주세요.'); return; }
+  if (!message) { alert('메시지 내용을 입력해 주세요.'); return; }
+  if (targetType === 'specific' && targetDealers.length === 0) {
+    alert('대상 대리점을 1개 이상 선택해 주세요.'); return;
+  }
+
+  const popups = getPopups();
+  const now = new Date().toISOString();
+
+  if (editingId) {
+    const idx = popups.findIndex(p => p.id === editingId);
+    if (idx > -1) {
+      popups[idx] = { ...popups[idx], title, active, imageUrl, showImage: showImg, message, targetType, targetDealers, updatedAt: now };
+    }
+  } else {
+    popups.push({ id: 'popup-' + Date.now(), title, active, imageUrl, showImage: showImg, message, targetType, targetDealers, createdAt: now, updatedAt: now });
+  }
+
+  savePopups(popups);
+  closeModal();
+  renderList();
+  showToast(editingId ? '팝업이 수정되었습니다.' : '팝업이 추가되었습니다.');
+}
+
+function showToast(msg) {
+  let t = document.getElementById('toastMsg');
+  if (!t) {
+    t = document.createElement('div');
+    t.id = 'toastMsg';
+    t.style.cssText = 'position:fixed;bottom:28px;left:50%;transform:translateX(-50%);background:var(--smith-green);color:#fff;padding:10px 22px;border-radius:40px;font-size:13px;font-weight:600;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,.2);';
+    document.body.appendChild(t);
+  }
+  t.textContent = msg;
+  t.style.display = 'block';
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => { t.style.display = 'none'; }, 2500);
+}
+
+async function handleLogout() {
+  await supabaseClient.auth.signOut();
+  window.location.href = '../index.html';
+}
+
+init();
+</script>
+</body>
+</html>

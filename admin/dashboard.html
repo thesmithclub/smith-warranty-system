@@ -59,21 +59,36 @@
     .form-input-sm:focus { outline: none; border-color: var(--primary); }
 
     /* 제품×위치 통계 */
-    .pos-matrix-wrap { overflow-x: auto; }
+    .prod-chip-wrap {
+      display: flex; flex-wrap: wrap; gap: 6px;
+      padding: 10px 16px 12px; border-bottom: 1px solid var(--border);
+    }
+    .prod-chip {
+      padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 600;
+      cursor: pointer; border: 1.5px solid var(--border);
+      background: var(--surface-2); color: var(--text-3);
+      transition: background 0.15s, color 0.15s, border-color 0.15s;
+      white-space: nowrap;
+    }
+    .prod-chip.sel {
+      background: var(--primary); color: #fff; border-color: var(--primary);
+    }
+    .pos-matrix-wrap { overflow-x: auto; padding-bottom: 12px; }
     .pos-matrix {
-      width: 100%; border-collapse: collapse; font-size: 12px;
-      min-width: 480px;
+      table-layout: fixed; width: 100%; border-collapse: collapse;
+      font-size: 12px; min-width: 480px;
     }
     .pos-matrix th {
-      background: var(--surface-2); padding: 7px 12px;
+      background: var(--surface-2); padding: 7px 10px;
       text-align: center; font-size: 11px; font-weight: 600;
       color: var(--text-3); border-bottom: 2px solid var(--border);
-      white-space: nowrap;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     }
     .pos-matrix th.row-head { text-align: left; color: var(--text-2); }
     .pos-matrix td {
-      padding: 8px 12px; border-bottom: 1px solid var(--border);
+      padding: 8px 10px; border-bottom: 1px solid var(--border);
       text-align: center; vertical-align: middle;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     }
     .pos-matrix tr:last-child td { border-bottom: none; }
     .pos-matrix tr:hover td { background: var(--surface-2); }
@@ -105,10 +120,10 @@
     <a href="register.html" class="nav-item">
       보증서 등록
     </a>
+    <a href="warranties.html" class="nav-item" id="navWarranties"> 보증서 조회</a>
     <a href="stock.html" class="nav-item" id="navStock">
       내 재고
     </a>
-    <a href="warranties.html" class="nav-item" id="navWarranties" style="display:none;"> 보증서 조회</a>
     <a href="stats.html" class="nav-item" id="navStats" style="display:none;"> 통계보기</a>
     <a href="dealers.html" class="nav-item" id="navDealers" style="display:none;">
       대리점 관리
@@ -119,6 +134,7 @@
     <a href="inventory.html" class="nav-item" id="navInventory" style="display:none;">
       재고 현황
     </a>
+    <a href="popup-config.html" class="nav-item" id="navPopup" style="display:none;"> 팝업 설정</a>
     <a href="deduction-config.html" class="nav-item" id="navDeduction" style="display:none;"> 차감설정</a>
   </nav>
 
@@ -212,8 +228,9 @@
             <div class="ui-card-sub">필터된 보증서 기준, 제품별 시공 위치 횟수입니다.</div>
           </div>
         </div>
-        <div class="pos-matrix-wrap" style="padding:0 0 4px;">
-          <div id="posMatrixBody" style="padding:0;"></div>
+        <div id="posChipWrap" class="prod-chip-wrap"></div>
+        <div class="pos-matrix-wrap">
+          <div id="posMatrixBody"></div>
         </div>
       </div>
 
@@ -340,6 +357,56 @@ let currentProfile = null;
 let allWarranties  = [];
 let chartInstance  = null;
 
+// ── 대리점 팝업 ──
+let _pendingPopups = [];
+let _popupIdx = 0;
+
+function checkDealerPopup(dealerId) {
+  const popups = getPopups();
+  const dismissed = JSON.parse(sessionStorage.getItem('dismissed_popups') || '[]');
+  _pendingPopups = popups.filter(p =>
+    p.active &&
+    !dismissed.includes(p.id) &&
+    (p.targetType === 'all' || (p.targetDealers || []).includes(dealerId))
+  );
+  _popupIdx = 0;
+  showNextPopup();
+}
+
+function showNextPopup() {
+  if (_popupIdx >= _pendingPopups.length) return;
+  const p = _pendingPopups[_popupIdx];
+  const imgWrap = document.getElementById('popupImgWrap');
+  const img     = document.getElementById('popupImg');
+  if (p.imageUrl && p.showImage !== false) {
+    img.src = p.imageUrl;
+    imgWrap.style.display = 'block';
+  } else {
+    imgWrap.style.display = 'none';
+  }
+  document.getElementById('popupTitle').textContent   = p.title   || '';
+  document.getElementById('popupMessage').textContent = p.message || '';
+  document.getElementById('dealerPopupOverlay').style.display = 'flex';
+}
+
+function closeDealerPopup() {
+  if (_popupIdx < _pendingPopups.length) {
+    const dismissed = JSON.parse(sessionStorage.getItem('dismissed_popups') || '[]');
+    dismissed.push(_pendingPopups[_popupIdx].id);
+    sessionStorage.setItem('dismissed_popups', JSON.stringify(dismissed));
+  }
+  _popupIdx++;
+  if (_popupIdx < _pendingPopups.length) {
+    const box = document.getElementById('dealerPopupBox');
+    box.style.animation = 'none';
+    box.offsetHeight;
+    box.style.animation = '';
+    showNextPopup();
+  } else {
+    document.getElementById('dealerPopupOverlay').style.display = 'none';
+  }
+}
+
 // ── 초기화 ──
 async function init() {
   const session = await requireAuth('../index.html');
@@ -354,16 +421,16 @@ async function init() {
 
   if (isAdmin) {
     document.getElementById('navStock').style.display      = 'none';
-    document.getElementById('navWarranties').style.display = 'flex';
     document.getElementById('navStats').style.display      = 'flex';
     document.getElementById('navDealers').style.display    = 'flex';
     document.getElementById('navProducts').style.display   = 'flex';
     document.getElementById('navInventory').style.display  = 'flex';
-    document.getElementById('navDeduction').style.display  = 'flex';
+    document.getElementById('navPopup').style.display      = 'flex';
   } else {
-    // 대리점: TOP 대리점 카드 숨김, 보증서 조회는 표시
+    // 대리점: TOP 대리점 카드 숨김
     document.getElementById('topDealerCard').style.display  = 'none';
-    document.getElementById('navWarranties').style.display  = 'flex';
+    // 팝업 확인
+    checkDealerPopup(currentProfile.id);
   }
 
   await loadWarranties();
@@ -468,76 +535,99 @@ const POS_DEFS = [
   { key: 'panorama',   label: '파노라마' },
 ];
 
+let currentWsForStats = [];
+let posProductFilter  = null; // null = 미초기화 (전체 선택)
+
+function _escHtmlPos(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
 function renderPosStats(ws) {
-  const section = document.getElementById('posStatsSection');
-  const body    = document.getElementById('posMatrixBody');
+  currentWsForStats = ws;
+  const section  = document.getElementById('posStatsSection');
+  const body     = document.getElementById('posMatrixBody');
+  const chipWrap = document.getElementById('posChipWrap');
   if (!section || !body) return;
 
-  if (ws.length === 0) {
-    section.style.display = 'none';
-    return;
-  }
+  if (ws.length === 0) { section.style.display = 'none'; return; }
 
-  // 사용된 제품명 목록 추출 (중복 제거, 가나다 정렬)
+  // 사용된 제품명 목록 추출 (중복 제거, 정렬)
   const productSet = new Set();
   ws.forEach(w => {
     POS_DEFS.forEach(p => {
-      const prod = w[p.key + '_product'];
-      if (prod && prod.trim()) productSet.add(prod.trim());
+      const prod = (w[p.key + '_product'] || '').trim();
+      if (prod) productSet.add(prod);
     });
   });
-  const products = [...productSet].sort();
+  const allProducts = [...productSet].sort();
 
-  if (products.length === 0) {
-    section.style.display = 'none';
-    return;
+  if (allProducts.length === 0) { section.style.display = 'none'; return; }
+
+  // 필터 초기화 / 동기화
+  if (posProductFilter === null) {
+    posProductFilter = new Set(allProducts);
+  } else {
+    posProductFilter = new Set([...posProductFilter].filter(p => allProducts.includes(p)));
+    if (posProductFilter.size === 0) posProductFilter = new Set(allProducts);
   }
+
+  // 칩 렌더링
+  if (chipWrap) {
+    chipWrap.innerHTML = allProducts.map(prod => {
+      const sel = posProductFilter.has(prod);
+      return `<button class="prod-chip${sel ? ' sel' : ''}" onclick="togglePosChip('${_escHtmlPos(prod)}')">${_escHtmlPos(prod)}</button>`;
+    }).join('');
+  }
+
+  // 표시할 제품 (선택된 것만)
+  const visibleProducts = allProducts.filter(p => posProductFilter.has(p));
 
   // matrix[posKey][product] = count
   const matrix = {};
   POS_DEFS.forEach(p => {
     matrix[p.key] = {};
-    products.forEach(prod => { matrix[p.key][prod] = 0; });
+    visibleProducts.forEach(prod => { matrix[p.key][prod] = 0; });
   });
   ws.forEach(w => {
     POS_DEFS.forEach(p => {
       const prod = (w[p.key + '_product'] || '').trim();
-      if (prod && matrix[p.key][prod] !== undefined) {
-        matrix[p.key][prod]++;
-      }
+      if (prod && matrix[p.key][prod] !== undefined) matrix[p.key][prod]++;
     });
   });
 
-  // 제품별 합계 (열 합)
+  // 제품별 합계
   const colTotals = {};
-  products.forEach(prod => {
+  visibleProducts.forEach(prod => {
     colTotals[prod] = POS_DEFS.reduce((s, p) => s + (matrix[p.key][prod] || 0), 0);
   });
 
-  const thCols = products.map(p =>
-    `<th>${p}</th>`
-  ).join('');
+  // 열 폭 균등 분배 (<colgroup> 사용)
+  const posColW = 80, sumColW = 60;
+  const nProd   = visibleProducts.length || 1;
+  const colsHtml = `
+    <col style="width:${posColW}px">
+    ${visibleProducts.map(() => `<col style="width:calc((100% - ${posColW + sumColW}px) / ${nProd})">`).join('')}
+    <col style="width:${sumColW}px">`;
+
+  const thCols = visibleProducts.map(p => `<th>${_escHtmlPos(p)}</th>`).join('');
 
   const rows = POS_DEFS.map(p => {
-    const rowTotal = products.reduce((s, prod) => s + (matrix[p.key][prod] || 0), 0);
-    const cells = products.map(prod => {
+    const rowTotal = visibleProducts.reduce((s, prod) => s + (matrix[p.key][prod] || 0), 0);
+    const cells = visibleProducts.map(prod => {
       const v = matrix[p.key][prod] || 0;
       return `<td>${v > 0 ? `<span class="pos-cell-val">${v}</span>` : `<span class="pos-cell-zero">—</span>`}</td>`;
     }).join('');
-    return `<tr>
-      <td class="row-label">${p.label}</td>
-      ${cells}
-      <td style="font-weight:700; color:var(--text-2);">${rowTotal || '—'}</td>
-    </tr>`;
+    return `<tr><td class="row-label">${p.label}</td>${cells}<td style="font-weight:700;color:var(--text-2);">${rowTotal || '—'}</td></tr>`;
   }).join('');
 
-  const totalCells = products.map(prod =>
+  const totalCells = visibleProducts.map(prod =>
     `<td>${colTotals[prod] > 0 ? colTotals[prod] : '—'}</td>`
   ).join('');
-  const grandTotal = products.reduce((s, p) => s + colTotals[p], 0);
+  const grandTotal = visibleProducts.reduce((s, p) => s + colTotals[p], 0);
 
   body.innerHTML = `
     <table class="pos-matrix">
+      <colgroup>${colsHtml}</colgroup>
       <thead>
         <tr>
           <th class="row-head">위치 \\ 제품</th>
@@ -556,6 +646,16 @@ function renderPosStats(ws) {
     </table>`;
 
   section.style.display = 'block';
+}
+
+function togglePosChip(prod) {
+  if (!posProductFilter) return;
+  if (posProductFilter.has(prod)) {
+    if (posProductFilter.size > 1) posProductFilter.delete(prod); // 최소 1개 유지
+  } else {
+    posProductFilter.add(prod);
+  }
+  renderPosStats(currentWsForStats);
 }
 
 // ── 이번달 TOP 대리점 랭킹 ──
@@ -865,7 +965,40 @@ function showToast(msg, type='info') {
   setTimeout(()=>t.remove(), 3500);
 }
 
-init();
+document.addEventListener('DOMContentLoaded', init);
 </script>
+
+<!-- ── 대리점 팝업 오버레이 ── -->
+<div id="dealerPopupOverlay" style="
+  display:none; position:fixed; inset:0; z-index:10000;
+  background:rgba(0,0,0,0.55); align-items:center; justify-content:center; padding:20px;
+">
+  <div id="dealerPopupBox" style="
+    background:var(--bg); border-radius:20px; width:100%; max-width:460px;
+    max-height:88vh; overflow-y:auto; box-shadow:0 20px 60px rgba(0,0,0,0.4);
+    animation: popupIn 0.3s cubic-bezier(0.34,1.56,0.64,1);
+  ">
+    <!-- 이미지 영역 -->
+    <div id="popupImgWrap" style="display:none; border-radius:20px 20px 0 0; overflow:hidden;">
+      <img id="popupImg" src="" alt="" style="width:100%; max-height:220px; object-fit:cover; display:block;">
+    </div>
+    <!-- 내용 영역 -->
+    <div style="padding:24px 24px 20px;">
+      <div id="popupTitle" style="font-size:17px; font-weight:800; color:var(--smith-text); margin-bottom:10px;"></div>
+      <div id="popupMessage" style="font-size:13px; color:var(--text-2); line-height:1.7; white-space:pre-wrap;"></div>
+      <button onclick="closeDealerPopup()" style="
+        margin-top:20px; width:100%; padding:12px; border:none; border-radius:12px;
+        background:var(--smith-green); color:#fff; font-size:14px; font-weight:700;
+        cursor:pointer; font-family:inherit;
+      ">확인</button>
+    </div>
+  </div>
+</div>
+<style>
+@keyframes popupIn {
+  from { opacity:0; transform:scale(0.88) translateY(20px); }
+  to   { opacity:1; transform:scale(1) translateY(0); }
+}
+</style>
 </body>
 </html>

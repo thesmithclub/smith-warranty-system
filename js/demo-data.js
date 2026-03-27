@@ -161,7 +161,7 @@ const SEED_DATA = {
 };
 
 // ── localStorage 초기화 (버전 기반 — 구조 변경 시 자동 리셋) ──
-const DEMO_VERSION = 'v9'; // 구조 바뀔 때 올려주세요
+const DEMO_VERSION = 'v11'; // 구조 바뀔 때 올려주세요
 
 function initDemoData() {
   if (localStorage.getItem('demo_version') !== DEMO_VERSION) {
@@ -169,6 +169,7 @@ function initDemoData() {
     localStorage.setItem('demo_users',     JSON.stringify(SEED_DATA.users));
     localStorage.setItem('demo_warranties',JSON.stringify(SEED_DATA.warranties));
     localStorage.setItem('demo_products',  JSON.stringify(SEED_DATA.products));
+    localStorage.setItem('demo_popups',    JSON.stringify([]));
     localStorage.setItem('demo_version',   DEMO_VERSION);
     localStorage.setItem('demo_initialized', '1');
   }
@@ -178,6 +179,8 @@ function getUsers()     { return JSON.parse(localStorage.getItem('demo_users') |
 function saveUsers(users){ localStorage.setItem('demo_users', JSON.stringify(users)); }
 function getWarranties(){ return JSON.parse(localStorage.getItem('demo_warranties') || '[]'); }
 function saveWarranties(ws){ localStorage.setItem('demo_warranties', JSON.stringify(ws)); }
+function getPopups()    { initDemoData(); return JSON.parse(localStorage.getItem('demo_popups') || '[]'); }
+function savePopups(ps) { localStorage.setItem('demo_popups', JSON.stringify(ps)); }
 
 // 제품/사양 getter & setter
 function getProducts()  { initDemoData(); return JSON.parse(localStorage.getItem('demo_products') || '[]'); }
