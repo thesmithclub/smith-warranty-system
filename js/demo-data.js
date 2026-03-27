@@ -175,7 +175,7 @@ function initDemoData() {
   }
 }
 
-function getUsers()     { return JSON.parse(localStorage.getItem('demo_users') || '[]'); }
+function getUsers()     { initDemoData(); return JSON.parse(localStorage.getItem('demo_users') || '[]'); }
 function saveUsers(users){ localStorage.setItem('demo_users', JSON.stringify(users)); }
 function getWarranties(){ return JSON.parse(localStorage.getItem('demo_warranties') || '[]'); }
 function saveWarranties(ws){ localStorage.setItem('demo_warranties', JSON.stringify(ws)); }
@@ -283,7 +283,7 @@ const supabaseClient = {
     async signInWithPassword({ email, password }) {
       initDemoData();
       const users = getUsers();
-      const user = users.find(u => u.email === email && u.password === password);
+      const user = users.find(u => u.email.toLowerCase() === email.toLowerCase() && u.password === password);
       if (!user) return { data: {}, error: { message: '아이디 또는 비밀번호가 올바르지 않습니다.' } };
       if (user.role === 'dealer' && user.active === false) {
         return { data: {}, error: { message: '비활성화된 대리점 계정입니다. 관리자에게 문의하세요.' } };

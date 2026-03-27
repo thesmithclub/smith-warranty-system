@@ -110,6 +110,44 @@
       display: inline-block; padding: 2px 9px; border-radius: 20px;
       font-size: 11px; font-weight: 700;
     }
+
+    /* 네온 토글 버튼 */
+    .neon-toggle {
+      padding: 7px 20px; border-radius: 20px;
+      font-size: 12px; font-weight: 700; letter-spacing: 0.5px;
+      border: 1.5px solid; cursor: pointer;
+      transition: all 0.2s; white-space: nowrap; flex-shrink: 0;
+      font-family: inherit;
+    }
+    .neon-on {
+      background: rgba(63,181,132,0.12);
+      color: #3fb584;
+      border-color: #3fb584;
+      box-shadow: 0 0 8px rgba(63,181,132,0.55), 0 0 18px rgba(63,181,132,0.25), inset 0 0 8px rgba(63,181,132,0.08);
+    }
+    .neon-on:hover {
+      background: rgba(63,181,132,0.22);
+      box-shadow: 0 0 12px rgba(63,181,132,0.75), 0 0 28px rgba(63,181,132,0.4), inset 0 0 10px rgba(63,181,132,0.12);
+    }
+    .neon-off {
+      background: rgba(255,255,255,0.03);
+      color: #4d5575;
+      border-color: #2e334f;
+      box-shadow: none;
+    }
+    .neon-off:hover { color: #8890b5; border-color: #4d5575; }
+
+    /* 대리점 검색 */
+    #dealerSearchInput {
+      width: 100%; box-sizing: border-box;
+      padding: 8px 12px; border-radius: 10px;
+      border: 1.5px solid var(--border);
+      background: var(--bg); color: var(--text-1);
+      font-size: 13px; font-family: inherit; outline: none;
+      margin-bottom: 6px; transition: border-color 0.15s;
+    }
+    #dealerSearchInput:focus { border-color: var(--primary); }
+    #dealerSearchInput::placeholder { color: var(--text-3); }
   </style>
 </head>
 <body>
@@ -207,6 +245,9 @@
         <label><input type="radio" name="targetType" value="all" checked onchange="onTargetChange()"> 모든 대리점</label>
         <label><input type="radio" name="targetType" value="specific" onchange="onTargetChange()"> 특정 대리점 선택</label>
       </div>
+      <div id="dealerSearchWrap" style="display:none;">
+        <input type="text" id="dealerSearchInput" placeholder="🔍  대리점 이름 검색..." oninput="filterDealers()">
+      </div>
       <div id="dealerCheckList"></div>
     </div>
 
@@ -288,14 +329,9 @@ function renderList() {
             <div class="popup-card-meta">대상: ${esc(targetText)} · ${p.imageUrl && p.showImage ? '이미지 포함' : '텍스트만'}</div>
             <div class="popup-card-meta" style="margin-top:2px;color:var(--text-3);">${esc((p.message||'').slice(0,60))}${(p.message||'').length>60?'…':''}</div>
           </div>
-          <div class="toggle-wrap">
-            <span class="toggle-label">${p.active ? 'ON' : 'OFF'}</span>
-            <label class="toggle" onclick="toggleActive('${p.id}')">
-              <input type="checkbox" ${p.active ? 'checked' : ''} readonly>
-              <div class="toggle-track"></div>
-              <div class="toggle-thumb"></div>
-            </label>
-          </div>
+          <button class="neon-toggle ${p.active ? 'neon-on' : 'neon-off'}" onclick="toggleActive('${p.id}')">
+            ${p.active ? '활성' : '비활성'}
+          </button>
           <div class="popup-card-actions">
             <button class="btn btn-sm btn-outline" onclick="openModal('${p.id}')">수정</button>
             <button class="btn btn-sm" onclick="deletePopup('${p.id}')" style="background:#fee2e2;color:#b91c1c;border:1px solid #fca5a5;">삭제</button>
@@ -373,7 +409,21 @@ function closeModal() {
 
 function onTargetChange() {
   const specific = document.querySelector('input[name=targetType]:checked')?.value === 'specific';
-  document.getElementById('dealerCheckList').style.display = specific ? 'block' : 'none';
+  document.getElementById('dealerCheckList').style.display   = specific ? 'block' : 'none';
+  document.getElementById('dealerSearchWrap').style.display  = specific ? 'block' : 'none';
+  if (specific) {
+    const inp = document.getElementById('dealerSearchInput');
+    inp.value = '';
+    filterDealers();
+    setTimeout(() => inp.focus(), 50);
+  }
+}
+
+function filterDealers() {
+  const q = document.getElementById('dealerSearchInput').value.trim().toLowerCase();
+  document.querySelectorAll('#dealerCheckList .dealer-check-item').forEach(item => {
+    item.style.display = item.textContent.toLowerCase().includes(q) ? '' : 'none';
+  });
 }
 
 function onImageUrlChange() {
