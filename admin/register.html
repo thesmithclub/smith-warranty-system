@@ -248,6 +248,7 @@
                     <th>시공위치</th>
                     <th>제품명</th>
                     <th>제품사양 (VLT%)</th>
+                    <th style="width:1px;"></th>
                   </tr>
                 </thead>
                 <tbody id="positionTableBody"></tbody>
@@ -773,8 +774,52 @@ function buildPositionTable() {
           <option value="">- 제품 먼저 선택 -</option>
         </select>
       </td>
+      <td style="white-space:nowrap; padding-left:6px;">
+        ${p.key === 'front' ? `
+        <button type="button" onclick="applyFrontToAll()" title="전면 제품·사양을 측면/후면에 일괄 적용"
+          style="display:inline-flex;align-items:center;gap:4px;padding:5px 10px;
+                 font-size:11px;font-weight:700;border:none;border-radius:7px;cursor:pointer;
+                 background:var(--primary);color:#fff;white-space:nowrap;
+                 box-shadow:var(--shadow-sm);transition:all .15s;">
+          ⬇ 일괄 적용
+        </button>` : ''}
+      </td>
     </tr>
   `).join('');
+}
+
+// ── 전면 제품·사양을 측면·후면에 일괄 적용 ──
+function applyFrontToAll() {
+  const frontProduct = document.getElementById('f_front_product')?.value;
+  const frontSpec    = document.getElementById('f_front_spec')?.value;
+
+  if (!frontProduct) {
+    showToast('전면 제품을 먼저 선택해 주세요.', 'error');
+    return;
+  }
+
+  // 적용 대상: 전면 제외, 글래스루프·파노라마 제외
+  const targets = ['side1', 'side2', 'side3', 'rear'];
+
+  targets.forEach(key => {
+    const productSel = document.getElementById(`f_${key}_product`);
+    if (!productSel) return;
+
+    // 제품 설정
+    productSel.value = frontProduct;
+
+    // 농도 드롭다운 갱신
+    onProductChange(key);
+
+    // 농도 설정 (갱신 후 값 지정)
+    if (frontSpec) {
+      const specSel = document.getElementById(`f_${key}_spec`);
+      if (specSel) specSel.value = frontSpec;
+    }
+  });
+
+  updatePreview();
+  showToast('전면 기준으로 측면·후면에 일괄 적용됐습니다.');
 }
 
 // ── 제품 선택 시 농도 드롭다운 갱신 ──
