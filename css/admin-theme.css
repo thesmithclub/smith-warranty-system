@@ -421,20 +421,23 @@ body {
 ════════════════════════════════════════ */
 .modal-overlay {
   display: none;
-  position: fixed; inset: 0;
-  background: rgba(26,29,46,.35);
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(26,29,46,.45);
   backdrop-filter: blur(4px);
-  z-index: 800;
-  align-items: center; justify-content: center;
+  z-index: 2000;
+  overflow-y: auto;
+  padding: 40px 20px;
 }
-.modal-overlay.active { display: flex; }
+.modal-overlay.active { display: block; }
 .modal-box {
   background: var(--bg);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-lg);
   padding: 28px 28px 24px;
-  width: 90%; max-width: 480px;
-  max-height: 90vh; overflow-y: auto;
+  width: 100%; max-width: 480px;
+  margin: 0 auto;
+  position: relative;
   animation: modalIn .2s ease;
 }
 @keyframes modalIn {
