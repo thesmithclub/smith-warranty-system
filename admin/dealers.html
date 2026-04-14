@@ -624,43 +624,45 @@ function openPanel(dealerId) {
 
   const isActive = d.active !== false;
   document.getElementById('panelBody').innerHTML = `
-    <div class="section-title">
-      대리점 정보
-      <div style="display:flex; align-items:center; gap:8px;">
-        <div class="neon-toggle" id="panelNeonToggle">
-          <button class="neon-toggle-btn ${isActive ? 'active-on' : 'active-off'}"
-            id="panelBtnActive"
-            onclick="${isActive ? '' : `toggleDealerActive('${d.id}')`}"
-            ${isActive ? 'disabled style="cursor:default;"' : ''}>활성</button>
-          <button class="neon-toggle-btn ${isActive ? 'inactive-off' : 'inactive-on'}"
-            id="panelBtnInactive"
-            onclick="${isActive ? `toggleDealerActive('${d.id}')` : ''}"
-            ${isActive ? '' : 'disabled style="cursor:default;"'}>비활성</button>
+    <div id="dealerInfoSection-${d.id}">
+      <div class="section-title">
+        대리점 정보
+        <div style="display:flex; align-items:center; gap:8px;">
+          <div class="neon-toggle" id="panelNeonToggle">
+            <button class="neon-toggle-btn ${isActive ? 'active-on' : 'active-off'}"
+              id="panelBtnActive"
+              onclick="${isActive ? '' : `toggleDealerActive('${d.id}')`}"
+              ${isActive ? 'disabled style="cursor:default;"' : ''}>활성</button>
+            <button class="neon-toggle-btn ${isActive ? 'inactive-off' : 'inactive-on'}"
+              id="panelBtnInactive"
+              onclick="${isActive ? `toggleDealerActive('${d.id}')` : ''}"
+              ${isActive ? '' : 'disabled style="cursor:default;"'}>비활성</button>
+          </div>
+          <button class="btn btn-outline btn-sm" onclick="startEditInline('${d.id}')">수정</button>
+          <button class="btn btn-sm" onclick="deleteDealer('${d.id}')" style="background:#fee2e2;color:#b91c1c;border:1px solid #fca5a5;">삭제</button>
         </div>
-        <button class="btn btn-outline btn-sm" onclick="openEditModal('${d.id}')">수정</button>
-        <button class="btn btn-sm" onclick="deleteDealer('${d.id}')" style="background:#fee2e2;color:#b91c1c;border:1px solid #fca5a5;">삭제</button>
       </div>
-    </div>
-    <div class="info-grid">
-      <div class="info-item">
-        <div class="info-item-label">대리점명</div>
-        <div class="info-item-value">${d.dealer_name}</div>
-      </div>
-      <div class="info-item">
-        <div class="info-item-label">연락처</div>
-        <div class="info-item-value">${d.dealer_phone || '-'}</div>
-      </div>
-      <div class="info-item" style="grid-column:1/-1;">
-        <div class="info-item-label">주소</div>
-        <div class="info-item-value">${d.dealer_address || '-'}</div>
-      </div>
-      <div class="info-item">
-        <div class="info-item-label">로그인 ID</div>
-        <div class="info-item-value"><code style="font-size:13px; background:var(--surface-2); padding:2px 8px; border-radius:4px;">${d.email || '-'}</code></div>
-      </div>
-      <div class="info-item">
-        <div class="info-item-label">등록일</div>
-        <div class="info-item-value">${d.joined_at || '-'}</div>
+      <div class="info-grid">
+        <div class="info-item">
+          <div class="info-item-label">대리점명</div>
+          <div class="info-item-value">${d.dealer_name}</div>
+        </div>
+        <div class="info-item">
+          <div class="info-item-label">연락처</div>
+          <div class="info-item-value">${d.dealer_phone || '-'}</div>
+        </div>
+        <div class="info-item" style="grid-column:1/-1;">
+          <div class="info-item-label">주소</div>
+          <div class="info-item-value">${d.dealer_address || '-'}</div>
+        </div>
+        <div class="info-item">
+          <div class="info-item-label">로그인 ID</div>
+          <div class="info-item-value"><code style="font-size:13px; background:var(--surface-2); padding:2px 8px; border-radius:4px;">${d.email || '-'}</code></div>
+        </div>
+        <div class="info-item">
+          <div class="info-item-label">등록일</div>
+          <div class="info-item-value">${d.joined_at || '-'}</div>
+        </div>
       </div>
     </div>
 
@@ -822,6 +824,93 @@ function toggleDealerActive(dealerId) {
   showToast(`${user.dealer_name} 계정이 ${newActive ? '활성화' : '비활성화'}되었습니다.`);
 }
 
+// ── 패널 내 인라인 수정 ──
+function startEditInline(dealerId) {
+  const d = allDealerStats.find(x => x.id === dealerId);
+  if (!d) return;
+  document.getElementById(`dealerInfoSection-${dealerId}`).innerHTML = `
+    <div class="section-title">
+      대리점 정보 수정
+      <div style="display:flex; gap:8px;">
+        <button class="btn btn-primary btn-sm" onclick="saveEditInline('${dealerId}')">저장</button>
+        <button class="btn btn-outline btn-sm" onclick="cancelEditInline('${dealerId}')">취소</button>
+      </div>
+    </div>
+    <div style="padding:4px 0 8px; display:grid; gap:12px;">
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+        <div>
+          <label class="form-label">대리점명 <span class="required">*</span></label>
+          <input id="e_name" class="form-control" style="margin-top:4px;">
+        </div>
+        <div>
+          <label class="form-label">연락처 <span class="required">*</span></label>
+          <input id="e_phone" type="tel" class="form-control" style="margin-top:4px;">
+        </div>
+      </div>
+      <div>
+        <label class="form-label">주소</label>
+        <input id="e_address" class="form-control" style="margin-top:4px;">
+      </div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+        <div>
+          <label class="form-label">로그인 ID <span class="required">*</span></label>
+          <input id="e_email" class="form-control" style="margin-top:4px;">
+        </div>
+        <div>
+          <label class="form-label">비밀번호 변경</label>
+          <input id="e_password" type="password" class="form-control" placeholder="변경 시에만 입력" style="margin-top:4px;">
+        </div>
+      </div>
+    </div>
+  `;
+  document.getElementById('e_name').value    = d.dealer_name    || '';
+  document.getElementById('e_phone').value   = d.dealer_phone   || '';
+  document.getElementById('e_address').value = d.dealer_address || '';
+  document.getElementById('e_email').value   = d.email          || '';
+}
+
+function cancelEditInline(dealerId) {
+  openPanel(dealerId);
+}
+
+function saveEditInline(dealerId) {
+  const name     = document.getElementById('e_name').value.trim();
+  const phone    = document.getElementById('e_phone').value.trim();
+  const address  = document.getElementById('e_address').value.trim();
+  const email    = document.getElementById('e_email').value.trim();
+  const password = document.getElementById('e_password').value.trim();
+
+  if (!name || !phone || !email) {
+    showToast('필수 항목을 모두 입력해 주세요.', 'error'); return;
+  }
+  if (!address) {
+    showToast('주소를 입력해 주세요.', 'error'); return;
+  }
+
+  const users = getUsers();
+  if (users.find(u => (u.email === email || u.username === email) && u.id !== dealerId)) {
+    showToast('이미 사용 중인 로그인 ID입니다.', 'error'); return;
+  }
+
+  const u = users.find(x => x.id === dealerId);
+  if (!u) return;
+  u.dealer_name    = name;
+  u.dealer_phone   = phone;
+  u.dealer_address = address;
+  u.email          = email;
+  u.username       = email;
+  if (password) u.password = password;
+  saveUsers(users);
+
+  const stat = allDealerStats.find(d => d.id === dealerId);
+  if (stat) Object.assign(stat, { dealer_name: name, dealer_phone: phone, dealer_address: address, email });
+
+  document.getElementById('panelTitle').textContent = name;
+  openPanel(dealerId);
+  showToast(`"${name}" 정보가 수정되었습니다.`);
+  renderDealers();
+}
+
 // ── 대리점 추가 모달 ──
 function openAddModal() {
   editingDealerId = null;
@@ -834,20 +923,6 @@ function openAddModal() {
   document.getElementById('dealerModal').classList.add('active');
 }
 
-function openEditModal(dealerId) {
-  const d = allDealerStats.find(x => x.id === dealerId);
-  if (!d) return;
-  editingDealerId = dealerId;
-  document.getElementById('modalTitle').textContent = '대리점 정보 수정';
-  document.getElementById('modalSaveBtn').textContent = '수정 저장';
-  document.getElementById('m_name').value    = d.dealer_name || '';
-  document.getElementById('m_phone').value   = d.dealer_phone || '';
-  document.getElementById('m_address').value = d.dealer_address || '';
-  document.getElementById('m_email').value   = d.email || '';
-  document.getElementById('m_password').value = '';
-  document.getElementById('m_password').placeholder = '변경 시에만 입력';
-  document.getElementById('dealerModal').classList.add('active');
-}
 
 function closeDealerModal() {
   document.getElementById('dealerModal').classList.remove('active');
@@ -855,11 +930,11 @@ function closeDealerModal() {
 }
 
 function saveDealer() {
-  const name    = document.getElementById('m_name').value.trim();
-  const phone   = document.getElementById('m_phone').value.trim();
-  const address = document.getElementById('m_address').value.trim();
-  const email   = document.getElementById('m_email').value.trim();
-  const password= document.getElementById('m_password').value.trim();
+  const name     = document.getElementById('m_name').value.trim();
+  const phone    = document.getElementById('m_phone').value.trim();
+  const address  = document.getElementById('m_address').value.trim();
+  const email    = document.getElementById('m_email').value.trim();
+  const password = document.getElementById('m_password').value.trim();
 
   if (!name || !phone || !email) {
     showToast('필수 항목을 모두 입력해 주세요.', 'error'); return;
@@ -867,46 +942,28 @@ function saveDealer() {
   if (!address) {
     showToast('주소를 입력해 주세요.', 'error'); return;
   }
-  if (!editingDealerId && !password) {
+  if (!password) {
     showToast('비밀번호를 입력해 주세요.', 'error'); return;
   }
 
   const users = getUsers();
-
-  if (editingDealerId) {
-    // 수정
-    const u = users.find(x => x.id === editingDealerId);
-    if (u) {
-      u.dealer_name    = name;
-      u.dealer_phone   = phone;
-      u.dealer_address = address;
-      u.email          = email;
-      if (password) u.password = password;
-    }
-    saveUsers(users);
-    showToast(`"${name}" 정보가 수정되었습니다.`);
-  } else {
-    // 추가
-    if (users.find(u => u.email === email || u.username === email)) {
-      showToast('이미 사용 중인 아이디입니다.', 'error'); return;
-    }
-    users.push({
-      id: 'dealer-' + Date.now(),
-      email, password,
-      role: 'dealer',
-      dealer_name: name,
-      dealer_phone: phone,
-      dealer_address: address,
-      joined_at: new Date().toISOString().split('T')[0],
-      active: true,
-    });
-    saveUsers(users);
-    showToast(`"${name}" 대리점이 추가되었습니다.`);
-    if (typeof GitHubSync !== 'undefined') GitHubSync.syncDealers().catch(console.warn);
+  if (users.find(u => u.email === email || u.username === email)) {
+    showToast('이미 사용 중인 아이디입니다.', 'error'); return;
   }
-
+  users.push({
+    id: 'dealer-' + Date.now(),
+    email, password,
+    role: 'dealer',
+    dealer_name: name,
+    dealer_phone: phone,
+    dealer_address: address,
+    joined_at: new Date().toISOString().split('T')[0],
+    active: true,
+  });
+  saveUsers(users);
+  showToast(`"${name}" 대리점이 추가되었습니다.`);
+  if (typeof GitHubSync !== 'undefined') GitHubSync.syncDealers().catch(console.warn);
   closeDealerModal();
-  closePanel();
   buildStats();
   renderDealers();
 }
