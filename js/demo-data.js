@@ -179,6 +179,24 @@ function getUsers()     { initDemoData(); return JSON.parse(localStorage.getItem
 function saveUsers(users){ localStorage.setItem('demo_users', JSON.stringify(users)); }
 function getWarranties(){ return JSON.parse(localStorage.getItem('demo_warranties') || '[]'); }
 function saveWarranties(ws){ localStorage.setItem('demo_warranties', JSON.stringify(ws)); }
+
+// ── 재고 이력 ──
+function getInventoryLogs(){ return JSON.parse(localStorage.getItem('smith_inventory_log') || '[]'); }
+function saveInventoryLogs(logs){ localStorage.setItem('smith_inventory_log', JSON.stringify(logs)); }
+function addInventoryLog(dealerId, productName, spec, delta, type, note) {
+  const logs = getInventoryLogs();
+  logs.unshift({
+    id: 'log-' + Date.now() + Math.random().toString(36).slice(2,6),
+    dealer_id: dealerId,
+    product_name: productName,
+    spec: String(spec).replace('%',''),
+    delta,          // 양수=입고, 음수=출고(미터)
+    type,           // 'in' | 'deduct' | 'adjust'
+    note: note || '',
+    created_at: new Date().toISOString(),
+  });
+  saveInventoryLogs(logs);
+}
 function getPopups()    { initDemoData(); return JSON.parse(localStorage.getItem('demo_popups') || '[]'); }
 function savePopups(ps) { localStorage.setItem('demo_popups', JSON.stringify(ps)); }
 
@@ -248,6 +266,8 @@ function deductInventoryMeters(dealerId, positions) {
     }
     if (item.used_meters === undefined) item.used_meters = 0;
     item.used_meters = Math.round((item.used_meters + meters) * 100) / 100;
+    // 이력 기록
+    addInventoryLog(dealerId, pos.product_name, specVal, -meters, 'deduct', `보증서 시공 차감 (${pos.key})`);
     changed = true;
   }
 
@@ -453,6 +473,12 @@ class MockQuery {
 
     // SELECT
     let ws = getWarranties();
+
+    // 아카이브된 보증서는 기본 제외 (includeArchived 필터가 있을 때만 포함)
+    const wantsArchived = this._filters.some(f => f.type === 'eq' && f.col === 'archived');
+    if (!wantsArchived) {
+      ws = ws.filter(r => !r.archived);
+    }
 
     // 필터 적용
     for (const f of this._filters) {

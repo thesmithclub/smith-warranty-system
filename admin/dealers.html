@@ -850,6 +850,9 @@ function saveDealer() {
   if (!name || !phone || !email) {
     showToast('필수 항목을 모두 입력해 주세요.', 'error'); return;
   }
+  if (!address) {
+    showToast('주소를 입력해 주세요.', 'error'); return;
+  }
   if (!editingDealerId && !password) {
     showToast('비밀번호를 입력해 주세요.', 'error'); return;
   }

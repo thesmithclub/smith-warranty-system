@@ -398,7 +398,7 @@ async function search() {
     .eq('warranty_number', wn)
     .single();
 
-  if (error || !data) { showState('notFound'); return; }
+  if (error || !data || data.archived) { showState('notFound'); return; }
 
   currentWarranty = data;
   showState('single');
@@ -431,7 +431,10 @@ async function searchByPhone() {
     .eq('customer_phone', phone)
     .order('service_date', { ascending: false });
 
-  if (error || !data || data.length === 0) { showState('notFound'); return; }
+  if (error || !data) { showState('notFound'); return; }
+  const filtered = data.filter(w => !w.archived);
+  if (filtered.length === 0) { showState('notFound'); return; }
+  data.length = 0; filtered.forEach(w => data.push(w));
 
   if (data.length === 1) {
     currentWarranty = data[0];

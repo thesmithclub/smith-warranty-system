@@ -655,8 +655,11 @@ function adjustQty(id, delta) {
   const inv = getInventory();
   const item = inv.find(i => i.id === id);
   if (!item) return;
-  item.quantity = Math.max(0, (item.quantity || 0) + delta);
+  const prev = item.quantity || 0;
+  item.quantity = Math.max(0, prev + delta);
   saveInventory(inv);
+  addInventoryLog(item.dealer_id, item.product_name, item.spec, delta, 'adjust',
+    `관리자 수량 ${delta > 0 ? '추가' : '차감'} (${prev} → ${item.quantity}롤)`);
   const input = document.getElementById('qty-' + id);
   if (input) input.value = item.quantity;
   renderInventory();
@@ -668,8 +671,14 @@ function saveQtyDirect(id, val) {
   const inv = getInventory();
   const item = inv.find(i => i.id === id);
   if (!item) return;
+  const prev = item.quantity || 0;
+  const delta = qty - prev;
   item.quantity = qty;
   saveInventory(inv);
+  if (delta !== 0) {
+    addInventoryLog(item.dealer_id, item.product_name, item.spec, delta, 'adjust',
+      `관리자 직접 수정 (${prev} → ${qty}롤)`);
+  }
   renderInventory();
   showToast('재고가 저장되었습니다.');
 }
@@ -742,6 +751,8 @@ function submitAddInv() {
     quantity: qty,
   });
   saveInventory(inv);
+  addInventoryLog(selectedDealerId, productName, spec, qty, 'in',
+    `신규 재고 등록 (${qty}롤)`);
   closeAddModal();
   renderInventory();
   showToast(`${productName} ${spec}% 재고 항목이 추가되었습니다.`);

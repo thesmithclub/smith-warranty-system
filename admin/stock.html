@@ -232,14 +232,43 @@
 
   <div class="main-content" style="display:block; padding:28px 32px;">
 
+    <!-- 탭 -->
+    <div style="display:flex;gap:8px;margin-bottom:20px;border-bottom:2px solid var(--border);padding-bottom:0;">
+      <button id="tab-stock" onclick="switchTab('stock')" style="padding:10px 20px;border:none;background:none;font-size:14px;font-weight:700;color:var(--smith-green-dark);border-bottom:3px solid var(--smith-green-dark);margin-bottom:-2px;cursor:pointer;">재고 현황</button>
+      <button id="tab-log"   onclick="switchTab('log')"   style="padding:10px 20px;border:none;background:none;font-size:14px;font-weight:600;color:var(--text-3);border-bottom:3px solid transparent;margin-bottom:-2px;cursor:pointer;">변동 이력</button>
+    </div>
+
+    <!-- 재고 현황 탭 -->
+    <div id="panel-stock">
     <!-- 요약 -->
     <div class="summary-bar" id="summaryBar"></div>
 
     <!-- 재고 카드 그리드 -->
     <div id="stockGrid"></div>
+    </div>
+
+    <!-- 변동 이력 탭 -->
+    <div id="panel-log" style="display:none;">
+      <div id="logTable" style="background:var(--bg);border-radius:12px;box-shadow:var(--shadow);overflow:hidden;">
+        <table style="width:100%;border-collapse:collapse;font-size:13px;">
+          <thead>
+            <tr style="background:var(--smith-green-dark);color:#fff;">
+              <th style="padding:10px 14px;text-align:left;font-weight:600;">일시</th>
+              <th style="padding:10px 14px;text-align:left;font-weight:600;">제품</th>
+              <th style="padding:10px 14px;text-align:center;font-weight:600;">농도</th>
+              <th style="padding:10px 14px;text-align:center;font-weight:600;">변동</th>
+              <th style="padding:10px 14px;text-align:left;font-weight:600;">내용</th>
+            </tr>
+          </thead>
+          <tbody id="logTableBody">
+            <tr><td colspan="5" style="text-align:center;padding:32px;color:var(--text-3);">이력이 없습니다.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
 
     <!-- 구매 배너 -->
-    <div class="purchase-banner">
+    <div class="purchase-banner" id="purchaseBanner">
       <div class="purchase-banner-text">
         <div class="purchase-banner-title">재고가 부족하신가요?</div>
         <div class="purchase-banner-sub">더 스미스 공식 쇼핑몰에서 제품을 구매하실 수 있습니다.</div>
@@ -387,8 +416,53 @@ function renderStock() {
 
 function goToPurchase(e) {
   e.preventDefault();
-  // 구매 페이지 URL이 설정되면 여기에 연결
   showToast('구매 페이지 URL을 설정해 주세요.', 'info');
+}
+
+function switchTab(tab) {
+  const isStock = tab === 'stock';
+  document.getElementById('panel-stock').style.display = isStock ? '' : 'none';
+  document.getElementById('panel-log').style.display   = isStock ? 'none' : '';
+  document.getElementById('purchaseBanner').style.display = isStock ? '' : 'none';
+  document.getElementById('tab-stock').style.cssText =
+    isStock
+      ? 'padding:10px 20px;border:none;background:none;font-size:14px;font-weight:700;color:var(--smith-green-dark);border-bottom:3px solid var(--smith-green-dark);margin-bottom:-2px;cursor:pointer;'
+      : 'padding:10px 20px;border:none;background:none;font-size:14px;font-weight:600;color:var(--text-3);border-bottom:3px solid transparent;margin-bottom:-2px;cursor:pointer;';
+  document.getElementById('tab-log').style.cssText =
+    !isStock
+      ? 'padding:10px 20px;border:none;background:none;font-size:14px;font-weight:700;color:var(--smith-green-dark);border-bottom:3px solid var(--smith-green-dark);margin-bottom:-2px;cursor:pointer;'
+      : 'padding:10px 20px;border:none;background:none;font-size:14px;font-weight:600;color:var(--text-3);border-bottom:3px solid transparent;margin-bottom:-2px;cursor:pointer;';
+  if (!isStock) renderLog();
+}
+
+function renderLog() {
+  const dealerId = currentProfile?.id;
+  const isAdmin  = currentProfile?.role === 'admin';
+  let logs = getInventoryLogs();
+  if (!isAdmin) logs = logs.filter(l => l.dealer_id === dealerId);
+
+  const typeLabel = { in: '입고', deduct: '출고(차감)', adjust: '수량조정' };
+  const typeColor = { in: '#16a34a', deduct: '#dc2626', adjust: '#2563eb' };
+
+  const body = document.getElementById('logTableBody');
+  if (logs.length === 0) {
+    body.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:32px;color:var(--text-3);">이력이 없습니다.</td></tr>';
+    return;
+  }
+  body.innerHTML = logs.slice(0, 200).map(l => {
+    const dt = new Date(l.created_at).toLocaleString('ko-KR', { month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' });
+    const sign = l.delta > 0 ? `+${l.delta}` : `${l.delta}`;
+    const color = l.type === 'in' ? '#16a34a' : l.type === 'deduct' ? '#dc2626' : '#2563eb';
+    const unit  = l.type === 'deduct' ? 'm' : '롤';
+    return `
+      <tr style="border-bottom:1px solid var(--border);">
+        <td style="padding:10px 14px;color:var(--text-3);white-space:nowrap;">${dt}</td>
+        <td style="padding:10px 14px;font-weight:600;">${l.product_name}</td>
+        <td style="padding:10px 14px;text-align:center;">${l.spec}%</td>
+        <td style="padding:10px 14px;text-align:center;font-weight:700;color:${color};">${sign}${unit}</td>
+        <td style="padding:10px 14px;color:var(--text-2);">${l.note}</td>
+      </tr>`;
+  }).join('');
 }
 
 function showToast(msg, type = 'success') {

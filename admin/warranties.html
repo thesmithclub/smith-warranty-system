@@ -279,10 +279,10 @@
       <div>
         <div style="font-weight:700;color:var(--primary);margin-bottom:8px;font-size:12px;">시공업체</div>
         <div class="d-grid2">
-          <div><label style="font-size:11px;color:var(--text-3);display:block;margin-bottom:3px;">시공점명</label><input id="e_shop_name" class="form-input-sm" type="text"></div>
-          <div><label style="font-size:11px;color:var(--text-3);display:block;margin-bottom:3px;">연락처</label><input id="e_shop_phone" class="form-input-sm" type="text"></div>
+          <div><label style="font-size:11px;color:var(--text-3);display:block;margin-bottom:3px;">시공점명</label><input id="e_shop_name" class="form-input-sm" type="text" readonly style="background:var(--surface-2,#f5f5f5);cursor:not-allowed;"></div>
+          <div><label style="font-size:11px;color:var(--text-3);display:block;margin-bottom:3px;">연락처</label><input id="e_shop_phone" class="form-input-sm" type="text" readonly style="background:var(--surface-2,#f5f5f5);cursor:not-allowed;"></div>
           <div><label style="font-size:11px;color:var(--text-3);display:block;margin-bottom:3px;">시공자</label><input id="e_installer_name" class="form-input-sm" type="text"></div>
-          <div><label style="font-size:11px;color:var(--text-3);display:block;margin-bottom:3px;">주소</label><input id="e_shop_address" class="form-input-sm" type="text"></div>
+          <div><label style="font-size:11px;color:var(--text-3);display:block;margin-bottom:3px;">주소</label><input id="e_shop_address" class="form-input-sm" type="text" readonly style="background:var(--surface-2,#f5f5f5);cursor:not-allowed;"></div>
         </div>
       </div>
 
@@ -350,7 +350,7 @@ async function init() {
     document.getElementById('navPopup').style.display = 'none';
   }
 
-  allWarranties = getWarranties().sort((a, b) =>
+  allWarranties = getWarranties().filter(x => !x.archived).sort((a, b) =>
     b.service_date.localeCompare(a.service_date)
   );
 
@@ -496,6 +496,18 @@ function saveEdit() {
   const w = currentEditWarranty;
   if (!w) return;
 
+  // 시공위치: 제품 선택 시 농도 필수
+  const posKeys = ['front','side1','side2','side3','rear','glass_roof','panorama'];
+  const posLabels = { front:'전면', side1:'측면1열', side2:'측면2열', side3:'측면3열', rear:'후면', glass_roof:'글래스루프', panorama:'파노라마' };
+  for (const key of posKeys) {
+    const prod = document.getElementById('e_' + key + '_product')?.value;
+    const spec = document.getElementById('e_' + key + '_spec')?.value;
+    if (prod && !spec) {
+      showToast(`${posLabels[key]} 농도를 선택해 주세요.`, 'error');
+      return;
+    }
+  }
+
   const fields = [
     'customer_name','customer_phone','customer_car','customer_address',
     'car_number','car_vin','service_date','service_price',
@@ -503,7 +515,7 @@ function saveEdit() {
     'side2_product','side2_spec','side3_product','side3_spec',
     'rear_product','rear_spec','glass_roof_product','glass_roof_spec',
     'panorama_product','panorama_spec',
-    'shop_name','shop_phone','shop_address','installer_name',
+    'installer_name',
   ];
 
   const updates = {};
@@ -516,24 +528,25 @@ function saveEdit() {
   const idx = ws.findIndex(x => x.id === w.id);
   if (idx > -1) { ws[idx] = { ...ws[idx], ...updates }; saveWarranties(ws); }
 
-  allWarranties = getWarranties().sort((a, b) => b.service_date.localeCompare(a.service_date));
+  allWarranties = getWarranties().filter(x => !x.archived).sort((a, b) => b.service_date.localeCompare(a.service_date));
   closeEditModal();
   renderTable();
   showToast('수정되었습니다.', 'success');
 }
 
-// ── 삭제 (관리자 전용) ──
+// ── 아카이브 (관리자 전용) ──
 function deleteWarranty(id) {
   const w = allWarranties.find(x => x.id === id);
   if (!w) return;
-  if (!confirm(`보증서 [${w.warranty_number}]를 삭제합니다.\n이 작업은 되돌릴 수 없습니다.`)) return;
+  if (!confirm(`보증서 [${w.warranty_number}]를 아카이브합니다.\n아카이브된 보증서는 대리점·고객 조회에서 숨겨집니다.`)) return;
 
-  const ws = getWarranties().filter(x => x.id !== id);
-  saveWarranties(ws);
+  const ws = getWarranties();
+  const idx = ws.findIndex(x => x.id === id);
+  if (idx > -1) { ws[idx] = { ...ws[idx], archived: true }; saveWarranties(ws); }
 
-  allWarranties = ws.sort((a, b) => b.service_date.localeCompare(a.service_date));
+  allWarranties = getWarranties().filter(x => !x.archived).sort((a, b) => b.service_date.localeCompare(a.service_date));
   renderTable();
-  showToast('삭제되었습니다.', 'success');
+  showToast('보증서가 아카이브 처리되었습니다.', 'success');
 }
 
 // ── 보증서 이미지 ──

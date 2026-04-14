@@ -264,16 +264,16 @@
           <div class="form-row">
             <div class="form-group">
               <label class="form-label">시공점명 <span class="required">*</span></label>
-              <input type="text" id="f_shop_name" class="form-control" oninput="updatePreview()">
+              <input type="text" id="f_shop_name" class="form-control" oninput="updatePreview()" readonly style="background:var(--surface-2);cursor:not-allowed;">
             </div>
             <div class="form-group">
               <label class="form-label">연락처</label>
-              <input type="tel" id="f_shop_phone" class="form-control" oninput="updatePreview()">
+              <input type="tel" id="f_shop_phone" class="form-control" oninput="updatePreview()" readonly style="background:var(--surface-2);cursor:not-allowed;">
             </div>
           </div>
           <div class="form-group">
             <label class="form-label">주소 <span class="required">*</span></label>
-            <input type="text" id="f_shop_address" class="form-control" oninput="updatePreview()">
+            <input type="text" id="f_shop_address" class="form-control" oninput="updatePreview()" readonly style="background:var(--surface-2);cursor:not-allowed;">
           </div>
           <div class="form-group">
             <label class="form-label">시공자 <span class="required">*</span></label>
@@ -903,15 +903,39 @@ function validate() {
       return false;
     }
   }
+
+  // 차량번호 OR 차대번호 중 하나 필수
+  const carNumber = document.getElementById('f_car_number').value.trim();
+  const carVin    = document.getElementById('f_car_vin').value.trim();
+  if (!carNumber && !carVin) {
+    showToast('차량번호 또는 차대번호 중 하나 이상 입력해 주세요.', 'error');
+    document.getElementById('f_car_number').focus();
+    return false;
+  }
+
   if (!document.getElementById('f_consent').checked) {
     showToast('정보수집 및 이용에 동의해야 보증서 발행이 가능합니다.', 'error');
     return false;
   }
+
+  // 최소 1개 시공위치 선택 필수
   const hasProduct = POSITIONS.some(p => document.getElementById(`f_${p.key}_product`)?.value);
   if (!hasProduct) {
     showToast('최소 하나 이상의 시공위치 제품을 선택해 주세요.', 'error');
     return false;
   }
+
+  // 제품 선택 시 농도 필수
+  for (const p of POSITIONS) {
+    const prod = document.getElementById(`f_${p.key}_product`)?.value;
+    const spec = document.getElementById(`f_${p.key}_spec`)?.value;
+    if (prod && !spec) {
+      showToast(`${p.label} 농도를 선택해 주세요.`, 'error');
+      document.getElementById(`f_${p.key}_spec`)?.focus();
+      return false;
+    }
+  }
+
   return true;
 }
 
@@ -984,6 +1008,29 @@ async function captureOnly() {
 // ── 보증서 등록 + 발송 ──
 async function submitWarranty() {
   if (!validate()) return;
+
+  // 재고 체크 (대리점만 적용)
+  if (currentProfile && currentProfile.role !== 'admin') {
+    const inv = getInventory();
+    const cfg = getDeductionConfig();
+    for (const p of POSITIONS) {
+      const prodVal = document.getElementById(`f_${p.key}_product`)?.value;
+      const specVal = (document.getElementById(`f_${p.key}_spec`)?.value || '').replace('%','');
+      if (!prodVal || !specVal) continue;
+      const meters = cfg.positions[p.key] || 0;
+      if (meters === 0) continue;
+      const item = inv.find(i =>
+        i.dealer_id === currentProfile.id &&
+        i.product_name === prodVal &&
+        i.spec === specVal
+      );
+      const remaining = item ? getRemainingMeters(item) : 0;
+      if (remaining < meters) {
+        showToast(`${prodVal} ${specVal}% 필름 재고 부족으로 보증서 등록이 불가합니다. 담당 AM에게 문의해주세요.`, 'error');
+        return;
+      }
+    }
+  }
 
   const btn = document.getElementById('submitBtn');
   btn.disabled = true;
