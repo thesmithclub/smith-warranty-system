@@ -760,17 +760,27 @@ function addInvItem(dealerId) {
   if (existing) {
     existing.quantity += qty;
   } else {
-    inv.push({ id: 'inv-' + Date.now(), dealer_id: dealerId, product_name: productName, spec, quantity: qty });
+    // 'inv-new-' 접두어를 사용해야 saveInventory에서 신규 항목으로 인식하여 upsert 처리
+    inv.push({ id: 'inv-new-' + Date.now(), dealer_id: dealerId, product_name: productName, spec, quantity: qty });
   }
   saveInventory(inv);
   document.getElementById(`invContent-${dealerId}`).innerHTML = buildInvHtml(dealerId);
   showToast('재고가 추가되었습니다.');
+  // upsert 완료 후 Supabase에서 발급된 실제 UUID로 UI 재렌더링
+  setTimeout(() => {
+    const el = document.getElementById(`invContent-${dealerId}`);
+    if (el) el.innerHTML = buildInvHtml(dealerId);
+  }, 1500);
 }
 
 function updateInvQty(itemId, val) {
   const inv = getInventory();
   const item = inv.find(i => i.id === itemId);
-  if (item) { item.quantity = parseInt(val) || 0; saveInventory(inv); }
+  if (item) {
+    item.quantity = parseInt(val) || 0;
+    saveInventory(inv);
+    showToast('수량이 저장되었습니다.');
+  }
 }
 
 function deleteInvItem(itemId, dealerId) {
