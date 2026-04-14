@@ -414,7 +414,8 @@
 
 <div class="toast-container" id="toastContainer"></div>
 
-<script src="../js/demo-data.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="../js/supabase-data.js"></script>
 <script src="../js/config.js"></script>
 <script src="../js/github-sync.js"></script>
 <script>
@@ -869,11 +870,11 @@ function saveDealer() {
       u.email          = email;
       if (password) u.password = password;
     }
-    localStorage.setItem('demo_users', JSON.stringify(users));
+    saveUsers(users);
     showToast(`"${name}" 정보가 수정되었습니다.`);
   } else {
     // 추가
-    if (users.find(u => u.email === email)) {
+    if (users.find(u => u.email === email || u.username === email)) {
       showToast('이미 사용 중인 아이디입니다.', 'error'); return;
     }
     users.push({
@@ -884,8 +885,9 @@ function saveDealer() {
       dealer_phone: phone,
       dealer_address: address,
       joined_at: new Date().toISOString().split('T')[0],
+      active: true,
     });
-    localStorage.setItem('demo_users', JSON.stringify(users));
+    saveUsers(users);
     showToast(`"${name}" 대리점이 추가되었습니다.`);
     if (typeof GitHubSync !== 'undefined') GitHubSync.syncDealers().catch(console.warn);
   }
