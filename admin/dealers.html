@@ -201,10 +201,10 @@
     /* 신규 대리점 추가 모달 */
     .add-dealer-form .form-row { margin-bottom: 0; }
 
-    /* ── 네온 상태 토글 (패널용) ── */
+    /* ── 상태 토글 (패널용) ── */
     .neon-toggle {
       display: inline-flex; border-radius: 20px; overflow: hidden;
-      border: 1px solid rgba(255,255,255,0.08);
+      border: 1px solid var(--border);
     }
     .neon-toggle-btn {
       padding: 5px 14px; font-size: 12px; font-weight: 700;
@@ -213,28 +213,24 @@
     }
     /* 활성 — 선택됨(ON) */
     .neon-toggle-btn.active-on {
-      background: #0d2b1a;
-      color: #39ff7a;
-      box-shadow: 0 0 8px #39ff7a88, inset 0 0 8px #39ff7a22;
-      text-shadow: 0 0 6px #39ff7a;
+      background: rgba(45,140,101,.15);
+      color: var(--primary);
     }
     /* 활성 — 미선택(OFF) */
     .neon-toggle-btn.active-off {
-      background: #111; color: #2a4d35; cursor: pointer;
+      background: var(--surface-2); color: var(--text-3); cursor: pointer;
     }
-    .neon-toggle-btn.active-off:hover { color: #39ff7a88; }
+    .neon-toggle-btn.active-off:hover { color: var(--primary); }
     /* 비활성 — 선택됨(ON) */
     .neon-toggle-btn.inactive-on {
-      background: #2b0d0d;
-      color: #ff4d4d;
-      box-shadow: 0 0 8px #ff4d4d88, inset 0 0 8px #ff4d4d22;
-      text-shadow: 0 0 6px #ff4d4d;
+      background: rgba(192,57,43,.12);
+      color: var(--red);
     }
     /* 비활성 — 미선택(OFF) */
     .neon-toggle-btn.inactive-off {
-      background: #111; color: #4d2a2a; cursor: pointer;
+      background: var(--surface-2); color: var(--text-3); cursor: pointer;
     }
-    .neon-toggle-btn.inactive-off:hover { color: #ff4d4d88; }
+    .neon-toggle-btn.inactive-off:hover { color: var(--red); }
 
     /* ── 카드 뱃지 (소형) ── */
     .card-status-badge {
@@ -243,16 +239,14 @@
       border: 1px solid transparent; white-space: nowrap;
     }
     .card-status-badge.active {
-      background: #0d2b1a; color: #39ff7a; border-color: #39ff7a44;
-      box-shadow: 0 0 5px #39ff7a55; text-shadow: 0 0 4px #39ff7a;
+      background: rgba(45,140,101,.12); color: var(--primary); border-color: rgba(45,140,101,.3);
     }
     .card-status-badge.inactive {
-      background: #2b0d0d; color: #ff4d4d; border-color: #ff4d4d44;
-      box-shadow: 0 0 5px #ff4d4d55; text-shadow: 0 0 4px #ff4d4d;
+      background: rgba(192,57,43,.10); color: var(--red); border-color: rgba(192,57,43,.25);
     }
     .card-status-dot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
-    .card-status-dot.active   { background: #39ff7a; box-shadow: 0 0 4px #39ff7a; }
-    .card-status-dot.inactive { background: #ff4d4d; box-shadow: 0 0 4px #ff4d4d; }
+    .card-status-dot.active   { background: var(--primary); }
+    .card-status-dot.inactive { background: var(--red); }
 
     /* 활성 필터 탭 */
     .active-filter-tabs {
@@ -267,8 +261,8 @@
     }
     .af-tab:last-child { border-right: none; }
     .af-tab.selected-all      { background: var(--smith-green-dark); color: #fff; }
-    .af-tab.selected-active   { background: #0d2b1a; color: #39ff7a; text-shadow: 0 0 6px #39ff7a; box-shadow: inset 0 0 8px #39ff7a22; }
-    .af-tab.selected-inactive { background: #2b0d0d; color: #ff4d4d; text-shadow: 0 0 6px #ff4d4d; box-shadow: inset 0 0 8px #ff4d4d22; }
+    .af-tab.selected-active   { background: rgba(45,140,101,.15); color: var(--primary); box-shadow: var(--shadow-inset-sm); }
+    .af-tab.selected-inactive { background: rgba(192,57,43,.10); color: var(--red); box-shadow: var(--shadow-inset-sm); }
     .af-tab:not([class*="selected"]):hover { background: var(--border); color: var(--text-1); }
 
     /* 정렬/필터 선택 */
