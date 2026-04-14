@@ -426,18 +426,17 @@ body {
   background: rgba(26,29,46,.45);
   backdrop-filter: blur(4px);
   z-index: 2000;
-  overflow-y: auto;
-  padding: 40px 20px;
+  align-items: center;
+  justify-content: center;
 }
-.modal-overlay.active { display: block; }
+.modal-overlay.active { display: flex; }
 .modal-box {
   background: var(--bg);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-lg);
   padding: 28px 28px 24px;
-  width: 100%; max-width: 480px;
-  margin: 0 auto;
-  position: relative;
+  width: 90%; max-width: 480px;
+  max-height: 92vh; overflow-y: auto;
   animation: modalIn .2s ease;
 }
 @keyframes modalIn {
