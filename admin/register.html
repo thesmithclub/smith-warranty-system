@@ -810,8 +810,8 @@ function applyFrontToAll() {
     return;
   }
 
-  // 적용 대상: 전면 제외, 글래스루프·파노라마 제외
-  const targets = ['side1', 'side2', 'side3', 'rear'];
+  // 적용 대상: 전면·측면3열·글래스루프·파노라마 제외
+  const targets = ['side1', 'side2', 'rear'];
 
   targets.forEach(key => {
     const productSel = document.getElementById(`f_${key}_product`);
