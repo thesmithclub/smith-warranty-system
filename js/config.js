@@ -21,14 +21,15 @@ const SOLAPI_CONFIG = {
 
 // ── 제품 목록 (드롭다운용 기본값, 실제는 DB에서 로드) ──
 const PRODUCTS = [
-  '', 'BELLA', 'FLUX', 'VEGA', 'T1', 'T2',
-  'Premium', 'Prestige', 'DETLA',
-  'ML Signature', 'ML Classic', 'ML Signature Green',
-  'Authentic T', 'Authentic L'
+  '', 'BELLA', '미러그린', 'VEGA', 'T0', 'T1', 'T1+', 'T2', 'TS',
+  '프리미엄', 'DELTA',
+  'ML시그니처', 'ML클래식', 'ML시그니처그린',
+  'Authentic T', 'Authentic L',
+  '미러블루', '솔라가드스페셜',
 ];
 
 // ── 제품사양 목록 (VLT%) ──
-const SPECS = ['', '5', '10', '15', '20', '25', '30', '35', '40', '50', '70'];
+const SPECS = ['', '5', '7', '10', '15', '17', '20', '25', '27', '30', '35', '40', '45', '50', '60', '70'];
 
 // ── 시공위치 목록 ──
 const POSITIONS = [

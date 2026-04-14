@@ -144,7 +144,7 @@
     <a href="dashboard.html" class="nav-item"> 대시보드</a>
     <a href="register.html" class="nav-item"> 보증서 등록</a>
     <a href="warranties.html" class="nav-item active"> 보증서 조회</a>
-    <a href="stock.html" class="nav-item" id="navStock"> 내 재고</a>
+    <a href="stock.html" class="nav-item" id="navStock" style="display:none;"> 내 재고</a>
     <a href="stats.html" class="nav-item" id="navStats" style="display:none;"> 통계보기</a>
     <a href="dealers.html" class="nav-item" id="navDealers" style="display:none;"> 대리점 관리</a>
     <a href="products.html" class="nav-item" id="navProducts" style="display:none;"> 제품 관리</a>
@@ -161,6 +161,8 @@
       });
       var s = document.getElementById('navStock'); if (s) s.style.display = 'none';
       var p = document.getElementById('navPopup'); if (p) p.style.display = 'flex';
+    } else {
+      var s = document.getElementById('navStock'); if (s) s.style.display = 'flex';
     }
   })();
   </script>
