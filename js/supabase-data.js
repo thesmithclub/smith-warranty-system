@@ -291,6 +291,7 @@ const supabaseClient = {
 
       const session = { user: { id: data.id, email: data.username } };
       localStorage.setItem('sb_session', JSON.stringify(session));
+      localStorage.setItem('sb_user_role', data.role); // nav 즉시 적용용
       return { data: { session }, error: null };
     },
 
@@ -302,6 +303,7 @@ const supabaseClient = {
 
     async signOut() {
       localStorage.removeItem('sb_session');
+      localStorage.removeItem('sb_user_role');
       return { error: null };
     },
   },
