@@ -89,6 +89,9 @@ async function getCurrentProfile() {
     return null;
   }
 
+  // 역할 캐시 (nav 깜빡임 방지용)
+  localStorage.setItem('sb_user_role', data.role);
+
   // 첫 호출 시 Supabase 캐시 초기화
   if (typeof initSupabaseData === 'function') {
     await initSupabaseData(data.id, data.role);

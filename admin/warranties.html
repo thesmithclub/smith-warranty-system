@@ -151,6 +151,18 @@
     <a href="inventory.html" class="nav-item" id="navInventory" style="display:none;"> 재고 현황</a>
     <a href="popup-config.html" class="nav-item" id="navPopup"> 팝업 설정</a>
   </nav>
+  <script>
+  /* 역할 기반 nav 즉시 적용 — Supabase 비동기 완료 전 깜빡임 방지 */
+  (function(){
+    var role = localStorage.getItem('sb_user_role');
+    if (role === 'admin') {
+      ['navStats','navDealers','navProducts','navInventory'].forEach(function(id){
+        var e = document.getElementById(id); if (e) e.style.display = 'flex';
+      });
+      var s = document.getElementById('navStock'); if (s) s.style.display = 'none';
+    }
+  })();
+  </script>
   <div class="sidebar-footer">
     <div class="user-profile">
       <div>
