@@ -1,35 +1,35 @@
 /* ============================================================
-   THE SMITH — Dark Neumorphism Admin UI Theme
+   THE SMITH — Light Neumorphism Admin UI Theme
    ============================================================ */
 
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800&display=swap');
 
 :root {
   /* ── Base ── */
-  --bg:          #1a1d2e;
-  --surface:     #1e2235;
-  --surface-2:   #222640;
+  --bg:          #edf0f7;
+  --surface:     #edf0f7;
+  --surface-2:   #e3e6f0;
   --sidebar-w:   240px;
   --feed-w:      300px;
-  --white:       #1e2235;
+  --white:       #ffffff;
 
   /* ── Brand ── */
-  --primary:     #3fb584;
-  --primary-dk:  #2d8c65;
-  --primary-lt:  #52c997;
-  --primary-pale:rgba(63,181,132,.12);
+  --primary:     #2d8c65;
+  --primary-dk:  #1a5c3e;
+  --primary-lt:  #3fb584;
+  --primary-pale:rgba(45,140,101,.10);
 
   /* ── Text ── */
-  --text-1:  #dde2f5;
-  --text-2:  #8890b5;
-  --text-3:  #4d5575;
+  --text-1:  #1a1d2e;
+  --text-2:  #525878;
+  --text-3:  #9099be;
 
   /* ── UI ── */
-  --border:  #272b42;
-  --green:   #3fb584;
-  --yellow:  #d4a843;
-  --red:     #d95c5c;
-  --blue:    #5b8dee;
+  --border:  #d0d4e8;
+  --green:   #2d8c65;
+  --yellow:  #b8880e;
+  --red:     #c0392b;
+  --blue:    #3a6fd8;
 
   /* ── Shape ── */
   --radius-sm: 10px;
@@ -37,8 +37,8 @@
   --radius-lg: 20px;
 
   /* ── Neumorphic Shadows (light source: top-left) ── */
-  --neu-dark:  #12141f;
-  --neu-light: #262944;
+  --neu-dark:  #c5c9d8;
+  --neu-light: #ffffff;
 
   --shadow-sm: 4px 4px 8px var(--neu-dark), -3px -3px 7px var(--neu-light);
   --shadow:    7px 7px 16px var(--neu-dark), -5px -5px 12px var(--neu-light);
@@ -179,7 +179,7 @@ body {
   height: 64px;
   display: flex; align-items: center; justify-content: space-between;
   position: sticky; top: 0; z-index: 50;
-  box-shadow: 0 2px 12px var(--neu-dark);
+  box-shadow: 0 2px 12px var(--neu-dark), 0 1px 0 var(--neu-light);
 }
 .main-header-title { font-size: 18px; font-weight: 700; color: var(--text-1); }
 .main-header-right { display: flex; align-items: center; gap: 12px; }
@@ -318,11 +318,11 @@ body {
   font-family: inherit;
 }
 .filter-btn.primary {
-  background: var(--surface-2);
-  color: var(--primary);
+  background: var(--primary);
+  color: #fff;
   box-shadow: var(--shadow-sm);
 }
-.filter-btn.primary:hover { box-shadow: var(--shadow); }
+.filter-btn.primary:hover { background: var(--primary-dk); box-shadow: var(--shadow); }
 .filter-btn.ghost {
   background: var(--surface-2);
   color: var(--text-2);
@@ -341,11 +341,11 @@ body {
   font-family: inherit;
 }
 .hdr-btn-primary {
-  background: var(--surface-2);
-  color: var(--primary);
+  background: var(--primary);
+  color: #fff;
   box-shadow: var(--shadow-sm);
 }
-.hdr-btn-primary:hover { box-shadow: var(--shadow); color: var(--primary-lt); }
+.hdr-btn-primary:hover { box-shadow: var(--shadow); background: var(--primary-dk); color: #fff; }
 .hdr-btn-primary:active { box-shadow: var(--shadow-inset-sm); }
 .hdr-btn-ghost {
   background: var(--surface-2);
@@ -422,7 +422,8 @@ body {
 .modal-overlay {
   display: none;
   position: fixed; inset: 0;
-  background: rgba(0,0,0,.6);
+  background: rgba(26,29,46,.35);
+  backdrop-filter: blur(4px);
   z-index: 800;
   align-items: center; justify-content: center;
 }
@@ -456,10 +457,10 @@ body {
 .btn:active { box-shadow: var(--shadow-inset-sm) !important; }
 .btn-sm { padding: 6px 14px; font-size: 13px; }
 .btn-primary {
-  background: var(--surface-2);
-  color: var(--primary);
+  background: var(--primary);
+  color: #fff;
 }
-.btn-primary:hover { color: var(--primary-lt); box-shadow: var(--shadow); }
+.btn-primary:hover { background: var(--primary-dk); box-shadow: var(--shadow); color: #fff; }
 .btn-outline {
   background: var(--surface-2);
   color: var(--text-2);

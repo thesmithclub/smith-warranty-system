@@ -3,24 +3,24 @@
    ============================================ */
 
 :root {
-  --smith-green: #2d6a4f;
-  --smith-green-dark: #1b4332;
-  --smith-green-light: #40916c;
-  --smith-gray: #f8f9fa;
-  --smith-border: #dee2e6;
-  --smith-text: #212529;
-  --smith-text-muted: #6c757d;
+  --smith-green: #2d8c65;
+  --smith-green-dark: #1a5c3e;
+  --smith-green-light: #3fb584;
+  --smith-gray: #edf0f7;
+  --smith-border: #d0d4e8;
+  --smith-text: #1a1d2e;
+  --smith-text-muted: #525878;
   --white: #ffffff;
-  --danger: #dc3545;
-  --success: #198754;
-  --warning: #ffc107;
+  --danger: #c0392b;
+  --success: #2d8c65;
+  --warning: #b8880e;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {
   font-family: 'Noto Sans KR', 'Apple SD Gothic Neo', sans-serif;
-  background: #f0f4f0;
+  background: var(--smith-gray);
   color: var(--smith-text);
   min-height: 100vh;
 }
@@ -80,16 +80,16 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, var(--smith-green-dark) 0%, var(--smith-green) 100%);
+  background: linear-gradient(145deg, #edf0f7 0%, #dde2f0 50%, #e5f0ea 100%);
 }
 
 .login-box {
-  background: white;
-  border-radius: 16px;
+  background: #edf0f7;
+  border-radius: 24px;
   padding: 48px 40px;
   width: 100%;
   max-width: 420px;
-  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  box-shadow: 12px 12px 28px #c5c9d8, -8px -8px 20px #ffffff;
 }
 
 .login-logo {
